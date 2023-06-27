@@ -1,4 +1,5 @@
 use std::collections::BinaryHeap;
+use std::time::Duration;
 use std::time::Instant;
 
 mod graph;
@@ -52,9 +53,11 @@ fn main() {
     let start = Instant::now();
     let graph = Graph::from_file("data/germany.fmi");
     let end = start.elapsed();
-    println!("loading graph file tookk {:.?}", end);
+    println!("loading graph file took {:.?}", end);
 
-    for test in get_test_cases() {
+    let mut times: Vec<Duration> = Vec::new();
+    let test_cases = get_test_cases();
+    for test in &test_cases {
         let start = Instant::now();
         let used_edges = dijkstra(&graph, test.from, test.to);
         let route = get_route(&graph, test.from, test.to, used_edges);
@@ -70,5 +73,8 @@ fn main() {
             cost as i32 - test.cost as i32,
             end
         );
+        times.push(end);
     }
+    let all: Duration = times.iter().sum();
+    println!("avg {:.?}", all / test_cases.len() as u32);
 }

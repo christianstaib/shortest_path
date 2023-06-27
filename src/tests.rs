@@ -9,7 +9,7 @@ pub struct TestRoute {
 }
 
 pub fn get_test_cases() -> Vec<TestRoute> {
-    let file = File::open("Benchs/germany2.que").expect("Failed to open file");
+    let file = File::open("benchs/germany2.que").expect("Failed to open file");
     let reader = BufReader::new(file);
 
     let mut from_to: Vec<(usize, usize)> = Vec::new();
@@ -25,7 +25,7 @@ pub fn get_test_cases() -> Vec<TestRoute> {
         }
     }
 
-    let file = File::open("Benchs/germany2.sol").expect("Failed to open file");
+    let file = File::open("benchs/germany2.sol").expect("Failed to open file");
     let reader = BufReader::new(file);
 
     let mut soll_vec: Vec<i32> = Vec::new();
