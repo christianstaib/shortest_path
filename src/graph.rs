@@ -11,8 +11,8 @@ pub struct Edge {
 
 #[derive(Clone)]
 pub struct Node {
-    _longitude: f32,
-    _latitude: f32,
+    pub longitude: f32,
+    pub latitude: f32,
 }
 
 pub struct Graph {
@@ -43,8 +43,8 @@ impl Graph {
                 let _elevation: f32 = values.next().unwrap().parse().unwrap();
 
                 Node {
-                    _latitude: latitude,
-                    _longitude: longitude,
+                    latitude,
+                    longitude,
                 }
             })
             .collect();
