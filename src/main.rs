@@ -144,6 +144,29 @@ fn main() {
     let end = start.elapsed();
     println!("loading graph file took {:.?}", end);
 
+    let mut outgoing: Vec<Vec<usize>> = vec![Vec::new(); graph.nodes.len()];
+    let mut incoming: Vec<Vec<usize>> = vec![Vec::new(); graph.nodes.len()];
+    for edge in &graph.edges {
+        outgoing[edge.source_id].push(edge.target_id);
+        incoming[edge.target_id].push(edge.source_id);
+    }
+    let degree: Vec<usize> = outgoing
+        .iter()
+        .zip(incoming.iter())
+        .map(|(x, y)| x.len() + y.len())
+        .collect();
+    for deg in 1..100 {
+        let number_degree_two_nodes = degree.iter().filter(|x| **x == deg).count();
+        if number_degree_two_nodes > 0 {
+            println!(
+                "degree {} {:.2} ({} nodes)",
+                deg,
+                number_degree_two_nodes as f32 / graph.nodes.len() as f32 * 100.0,
+                number_degree_two_nodes,
+            );
+        }
+    }
+
     let h_factor = get_h_factor(&graph).unwrap() as f32;
     let start = Instant::now();
     let distance_to_to_node: Vec<u32> = graph
