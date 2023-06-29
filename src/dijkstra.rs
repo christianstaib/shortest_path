@@ -2,12 +2,9 @@ use crate::graph::*;
 use crate::queue::*;
 use std::collections::BinaryHeap;
 
-pub fn a_star(
-    graph: &Graph,
-    from_node_id: usize,
-    to_node_id: usize,
-    h_factor: f32,
-) -> Vec<Option<usize>> {
+pub fn a_star(graph: &Graph, from_node_id: usize, to_node_id: usize) -> Vec<Option<usize>> {
+    let h_factor = get_h_factor(graph).unwrap() as f32;
+
     let distance_to_to_node: Vec<u32> = graph
         .nodes
         .iter()
