@@ -2,11 +2,13 @@ use std::time::Duration;
 use std::time::Instant;
 
 mod dijkstra;
+mod double_end_a_star;
 mod graph;
 mod investigation;
 mod queue;
 mod tests;
 use crate::dijkstra::*;
+use crate::double_end_a_star::*;
 use crate::graph::*;
 use crate::tests::*;
 

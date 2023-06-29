@@ -1,3 +1,4 @@
+use core::num;
 use std::fs::File;
 use std::io::{self, BufRead};
 const SKIP_LINES: usize = 5;
@@ -16,6 +17,7 @@ pub struct Node {
     pub latitude: f32,
 }
 
+#[derive(Clone)]
 pub struct Graph {
     pub nodes: Vec<Node>,
     pub edges: Vec<Edge>,
@@ -71,26 +73,8 @@ impl Graph {
             })
             .collect();
 
-        let mut edges_start_for_node: Vec<usize> = vec![0; number_of_nodes + 1];
-
-        // temporarrly adding a node in order to generate the list
-        edges.push(Edge {
-            source_id: number_of_nodes,
-            target_id: 0,
-            cost: 0,
-        });
-        edges.sort_unstable_by_key(|edge| edge.source_id);
-
-        let mut current = 0;
-        for (i, edge) in edges.iter().enumerate() {
-            if edge.source_id != current {
-                for index in (current + 1)..=edge.source_id {
-                    edges_start_for_node[index] = i;
-                }
-                current = edge.source_id;
-            }
-        }
-        edges.pop();
+        let edges_start_for_node: Vec<usize> =
+            get_edges_start_for_node(&mut edges, number_of_nodes);
 
         Graph {
             nodes: nodes.clone(),
@@ -98,6 +82,31 @@ impl Graph {
             edges_start_at: edges_start_for_node.clone(),
         }
     }
+}
+
+pub fn get_edges_start_for_node(edges: &mut Vec<Edge>, number_of_nodes: usize) -> Vec<usize> {
+    let mut edges_start_for_node: Vec<usize> = vec![0; number_of_nodes + 1];
+
+    // temporarrly adding a node in order to generate the list
+    edges.push(Edge {
+        source_id: number_of_nodes,
+        target_id: 0,
+        cost: 0,
+    });
+    edges.sort_unstable_by_key(|edge| edge.source_id);
+
+    let mut current = 0;
+    for (i, edge) in edges.iter().enumerate() {
+        if edge.source_id != current {
+            for index in (current + 1)..=edge.source_id {
+                edges_start_for_node[index] = i;
+            }
+            current = edge.source_id;
+        }
+    }
+    edges.pop();
+
+    edges_start_for_node
 }
 
 pub struct Route {
@@ -134,4 +143,11 @@ pub fn get_route(
         cost: edges.iter().map(|edge| edge.cost).sum(),
         edges,
     })
+}
+
+pub fn distance(from: &Node, to: &Node) -> f32 {
+    //let distance = (from.latitude - to.latitude).abs() + (from.longitude - to.longitude).abs();
+    let distance =
+        ((from.latitude - to.latitude).powi(2) + (from.longitude - to.longitude).powi(2)).sqrt();
+    distance
 }
