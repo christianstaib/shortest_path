@@ -1,3 +1,5 @@
+use crate::dijkstra::*;
+use rand::Rng;
 use std::fs::File;
 use std::io::{self, BufRead};
 const SKIP_LINES: usize = 5;
@@ -77,6 +79,8 @@ impl Graph {
             target_id: 0,
             cost: 0,
         });
+        edges.sort_unstable_by_key(|edge| edge.source_id);
+
         let mut current = 0;
         for (i, edge) in edges.iter().enumerate() {
             if edge.source_id != current {
@@ -88,11 +92,77 @@ impl Graph {
         }
         edges.pop();
 
-        Graph {
+        let graph = Graph {
+            nodes: nodes.clone(),
+            edges: edges.clone(),
+            edges_start_at: edges_start_for_node.clone(),
+        };
+
+        let mut outgoing: Vec<Vec<usize>> = vec![Vec::new(); graph.nodes.len()];
+        let mut incoming: Vec<Vec<usize>> = vec![Vec::new(); graph.nodes.len()];
+        for edge in &graph.edges {
+            outgoing[edge.source_id].push(edge.target_id);
+            incoming[edge.target_id].push(edge.source_id);
+        }
+
+        let intersections: Vec<usize> = (0..graph.nodes.len())
+            .into_iter()
+            .filter(|&node_id| {
+                let mut l1 = outgoing[node_id].clone();
+                let mut l2 = incoming[node_id].clone();
+                l1.sort();
+                l2.sort();
+                //(l1 != l2) | ((l1 == l2) & (l1.len() > 2));
+                (outgoing[node_id].len() > 2) | ((outgoing[node_id].len() == 2) & (l1 != l2))
+            })
+            .collect();
+
+        let h_factor = get_h_factor(&graph).unwrap() as f32;
+        let mut extra_edges: Vec<Edge> = Vec::new();
+        let mut rng = rand::thread_rng();
+        for i in 0..1000 {
+            println!("calculation extra edge {i}");
+            let source_id = rng.gen_range(0..intersections.len());
+            let target_id = rng.gen_range(0..intersections.len());
+
+            let used_edges = a_star(&graph, source_id, target_id, h_factor);
+
+            let route = get_route(&graph, source_id, target_id, used_edges);
+            if route.is_some() {
+                let cost = route.unwrap().cost;
+                extra_edges.push(Edge {
+                    source_id,
+                    target_id,
+                    cost,
+                })
+            }
+        }
+
+        edges.append(&mut extra_edges);
+        // temporarrly adding a node in order to generate the list
+        edges.push(Edge {
+            source_id: number_of_nodes,
+            target_id: 0,
+            cost: 0,
+        });
+        edges.sort_unstable_by_key(|edge| edge.source_id);
+        let mut current = 0;
+        for (i, edge) in edges.iter().enumerate() {
+            if edge.source_id != current {
+                for index in (current + 1)..=edge.source_id {
+                    edges_start_for_node[index] = i;
+                }
+                current = edge.source_id;
+            }
+        }
+        edges.pop();
+
+        let graph = Graph {
             nodes,
             edges,
             edges_start_at: edges_start_for_node,
-        }
+        };
+        graph
     }
 }
 
