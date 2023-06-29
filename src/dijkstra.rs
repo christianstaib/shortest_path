@@ -2,9 +2,30 @@ use crate::graph::*;
 use crate::queue::*;
 use std::collections::BinaryHeap;
 
-pub fn a_star(graph: &Graph, from_node_id: usize, to_node_id: usize) -> Vec<Option<usize>> {
-    let h_factor = get_h_factor(graph).unwrap() as f32;
+pub struct AStar {
+    graph: Graph,
+    h_factor: f32,
+}
 
+impl AStar {
+    pub fn new(graph: Graph) -> Self {
+        let h_factor = get_h_factor(&graph).unwrap() as f32;
+        AStar { graph, h_factor }
+    }
+
+    pub fn get_route(&self, source_id: usize, target_id: usize) -> Option<Route> {
+        let used_edges = a_star(&self.graph, source_id, target_id, self.h_factor);
+        let route = get_route(&self.graph, source_id, target_id, used_edges).unwrap();
+        Some(route)
+    }
+}
+
+pub fn a_star(
+    graph: &Graph,
+    from_node_id: usize,
+    to_node_id: usize,
+    h_factor: f32,
+) -> Vec<Option<usize>> {
     let distance_to_to_node: Vec<u32> = graph
         .nodes
         .iter()
