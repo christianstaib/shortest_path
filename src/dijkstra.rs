@@ -9,7 +9,7 @@ pub struct AStar {
 
 impl AStar {
     pub fn new(graph: Graph) -> Self {
-        let h_factor = get_h_factor().unwrap() as f32;
+        let h_factor = get_h_factor(&graph).unwrap() as f32;
         AStar { graph, h_factor }
     }
 
@@ -68,15 +68,14 @@ impl AStar {
     }
 }
 
-pub fn get_h_factor(&self) -> Option<u32> {
-    let min_ratio = self
-        .graph
+pub fn get_h_factor(graph: &Graph) -> Option<u32> {
+    let min_ratio = graph
         .edges
         .iter()
         .map(|edge| {
-            let source_node = &self.graph.nodes[edge.source_id];
-            let target_node = &self.graph.nodes[edge.target_id];
-            let ratio = edge.cost as f32 / distance(source_node, target_node);
+            let source_node = &graph.nodes[edge.source_id];
+            let target_node = &graph.nodes[edge.target_id];
+            let ratio = edge.cost as f32 / distance(&source_node, &target_node);
 
             ratio
         })
@@ -84,14 +83,13 @@ pub fn get_h_factor(&self) -> Option<u32> {
         .min_by(|a, b| a.total_cmp(b))
         .unwrap();
 
-    let is_admissible = &self
-        .graph
+    let is_admissible = graph
         .edges
         .iter()
         .map(|edge| {
-            let source_node = &self.graph.nodes[edge.source_id];
-            let target_node = &self.graph.nodes[edge.target_id];
-            let h = min_ratio * distance(source_node, target_node);
+            let source_node = &graph.nodes[edge.source_id];
+            let target_node = &graph.nodes[edge.target_id];
+            let h = min_ratio * distance(&source_node, &target_node);
             h as u32 <= edge.cost
         })
         .all(|x| x == true);

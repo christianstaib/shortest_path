@@ -1,3 +1,4 @@
+use crate::dijkstra::*;
 use crate::graph::*;
 use crate::queue::*;
 use std::collections::BinaryHeap;

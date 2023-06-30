@@ -24,7 +24,7 @@ pub fn find_intersections(graph: &Graph) -> Vec<usize> {
 }
 
 pub fn calculate_h_for_every_node(graph: &Graph) {
-    let h_factor = get_h_factor(&graph).unwrap() as f32;
+    let h_factor = get_h_factor(graph).unwrap() as f32;
     let start = Instant::now();
     let _: Vec<u32> = graph
         .nodes
