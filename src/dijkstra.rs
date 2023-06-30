@@ -1,101 +1,63 @@
 use crate::graph::*;
-use crate::queue::*;
-use std::collections::BinaryHeap;
+use rayon::prelude::*;
 
-pub struct AStar {
-    graph: Graph,
-    h_factor: f32,
+pub struct Dijkstra {
+    pub graph: Graph,
+    pub max_edge_cost: usize,
 }
 
-impl AStar {
-    pub fn new(graph: Graph) -> Self {
-        let h_factor = get_h_factor(&graph).unwrap() as f32;
-        AStar { graph, h_factor }
+impl Dijkstra {
+    pub fn get_route(&self, from_id: usize, to_id: usize) -> Option<Route> {
+        let used_edges = self.get_used_edges(from_id, to_id);
+        let route = get_route(&self.graph, from_id, to_id, used_edges);
+
+        route
     }
 
-    pub fn get_route(&self, source_id: usize, target_id: usize) -> Option<Route> {
-        let used_edges = self.a_star(source_id, target_id);
-        let route = get_route(&self.graph, source_id, target_id, used_edges).unwrap();
-        Some(route)
-    }
-
-    pub fn a_star(&self, from_node_id: usize, to_node_id: usize) -> Vec<Option<usize>> {
-        let distance_to_to_node: Vec<u32> = self
-            .graph
-            .nodes
-            .iter()
-            .map(|node| (self.h_factor * distance(&node, &self.graph.nodes[to_node_id])) as u32)
-            .collect();
-
-        let mut queue: BinaryHeap<State> = BinaryHeap::new();
-
-        queue.push(State {
-            node_cost: 0,
-            node_id: from_node_id,
-        });
-
+    fn get_used_edges(&self, from_id: usize, to_id: usize) -> Vec<Option<usize>> {
+        let mod_number = self.max_edge_cost as usize + 1;
+        let mut buckets: Vec<Vec<usize>> = vec![Vec::new(); mod_number];
         let mut edge_from_predecessor: Vec<Option<usize>> = vec![None; self.graph.nodes.len()];
         let mut node_cost: Vec<u32> = vec![u32::MAX; self.graph.nodes.len()];
         let mut is_expanded: Vec<bool> = vec![false; self.graph.nodes.len()];
 
-        while !queue.is_empty() {
-            let state = queue.pop().unwrap();
-            if is_expanded[state.node_id] {
-                continue;
-            }
-            if state.node_id == to_node_id {
-                break;
-            }
-            is_expanded[state.node_id] = true;
+        buckets[0].push(from_id);
+        let mut nodes_in_buckets = 1;
+        'outer: for i in 0..(self.max_edge_cost * self.graph.edges.len()) {
+            while let Some(node_id) = buckets[i % mod_number].pop() {
+                nodes_in_buckets -= 1;
+                //if is_expanded[node_id] {
+                //    continue;
+                //}
+                if node_id == to_id {
+                    break 'outer;
+                }
+                is_expanded[node_id] = true;
 
-            for edge_id in self.graph.edges_start_at[state.node_id]
-                ..self.graph.edges_start_at[state.node_id + 1]
-            {
-                let edge = &self.graph.edges[edge_id];
-                let alternative_cost = node_cost[state.node_id] + edge.cost;
-                if alternative_cost < node_cost[edge.target_id] {
-                    edge_from_predecessor[edge.target_id] = Some(edge_id);
-                    node_cost[edge.target_id] = alternative_cost;
-                    queue.push(State {
-                        node_cost: alternative_cost + distance_to_to_node[edge.target_id],
-                        node_id: edge.target_id,
+                let start_edge_id = self.graph.edges_start_at[node_id];
+                let end_edge_id = self.graph.edges_start_at[node_id + 1];
+                self.graph
+                    .edges
+                    .par_iter()
+                    .enumerate()
+                    .skip(start_edge_id)
+                    .take(end_edge_id - start_edge_id)
+                    .for_each(|(edge_id, edge)| {
+                        let alternative_cost = node_cost[node_id] + edge.cost;
+                        if alternative_cost < node_cost[edge.target_id] {
+                            edge_from_predecessor[edge.target_id] = Some(edge_id);
+                            node_cost[edge.target_id] = alternative_cost;
+                            buckets[alternative_cost as usize % mod_number].push(edge.target_id);
+                            nodes_in_buckets += 1
+                        }
                     });
+
+                if nodes_in_buckets == 0 {
+                    break 'outer;
                 }
             }
         }
 
         edge_from_predecessor
-    }
-}
-
-pub fn get_h_factor(graph: &Graph) -> Option<u32> {
-    let min_ratio = graph
-        .edges
-        .iter()
-        .map(|edge| {
-            let source_node = &graph.nodes[edge.source_id];
-            let target_node = &graph.nodes[edge.target_id];
-            let ratio = edge.cost as f32 / distance(&source_node, &target_node);
-
-            ratio
-        })
-        .filter(|x| x.is_normal())
-        .min_by(|a, b| a.total_cmp(b))
-        .unwrap();
-
-    let is_admissible = graph
-        .edges
-        .iter()
-        .map(|edge| {
-            let source_node = &graph.nodes[edge.source_id];
-            let target_node = &graph.nodes[edge.target_id];
-            let h = min_ratio * distance(&source_node, &target_node);
-            h as u32 <= edge.cost
-        })
-        .all(|x| x == true);
-
-    match is_admissible {
-        true => Some(min_ratio as u32),
-        false => None,
     }
 }

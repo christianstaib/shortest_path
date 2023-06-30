@@ -1,4 +1,4 @@
-use crate::dijkstra::*;
+use crate::a_star::*;
 use crate::graph::*;
 use std::time::Instant;
 

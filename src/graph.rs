@@ -1,4 +1,3 @@
-use core::num;
 use std::fs::File;
 use std::io::{self, BufRead};
 const SKIP_LINES: usize = 5;
@@ -145,7 +144,7 @@ pub fn get_route(
     })
 }
 
-pub fn distance(from: &Node, to: &Node) -> f32 {
+pub fn _distance(from: &Node, to: &Node) -> f32 {
     //let distance = (from.latitude - to.latitude).abs() + (from.longitude - to.longitude).abs();
     let distance =
         ((from.latitude - to.latitude).powi(2) + (from.longitude - to.longitude).powi(2)).sqrt();
