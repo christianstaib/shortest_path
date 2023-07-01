@@ -1,34 +1,20 @@
 use std::time::Duration;
 use std::time::Instant;
 
+mod a_star;
 mod dijkstra;
 mod graph;
 mod queue;
 mod tests;
-use crate::dijkstra::*;
+use crate::a_star::*;
 use crate::graph::*;
 use crate::tests::*;
 
 fn main() {
     let graph = Graph::from_file("data/germany.fmi");
 
-    let zero_cost_edges: Vec<usize> = graph
-        .edges
-        .iter()
-        .enumerate()
-        .filter(|(_, edge)| edge.cost == 0)
-        .map(|(i, _)| i)
-        .collect();
-
-    println!("there are {} zero cost edges", zero_cost_edges.len());
-
-    let max_edge_cost = graph.edges.iter().map(|edge| edge.cost).max().unwrap();
-    println!("max edge cost is {}", max_edge_cost);
-    let dijkstra = Dijkstra {
-        graph,
-        max_edge_cost: max_edge_cost as usize,
-    };
-
+    let dijkstra = AStar::new(graph);
+    //let dijkstra = Dijkstra::new(graph);
     let mut times: Vec<Duration> = Vec::new();
     let test_cases = get_test_cases();
     for test in &test_cases {
@@ -38,11 +24,12 @@ fn main() {
             let end_main = start_main.elapsed();
 
             println!(
-                "{:>8} -> {:>8} diff: {:01}, time: {:.2?}s",
+                "{:>8} -> {:>8} diff: {:01}, time: {:.2?}s, seen {:>8} nodes",
                 test.from,
                 test.to,
                 route.cost as i32 - test.cost as i32,
-                end_main.as_secs_f32()
+                end_main.as_secs_f32(),
+                route.seen_nodes,
             );
 
             times.push(end_main);

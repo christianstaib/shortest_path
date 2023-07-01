@@ -142,6 +142,7 @@ pub struct Route {
     pub start: usize,
     pub end: usize,
     pub cost: u32,
+    pub seen_nodes: u32,
     pub edges: Vec<Edge>,
 }
 
@@ -170,6 +171,7 @@ pub fn get_route(
         start,
         end,
         cost: edges.iter().map(|edge| edge.cost).sum(),
+        seen_nodes: used_edges.iter().filter(|x| x.is_some()).count() as u32,
         edges,
     })
 }
