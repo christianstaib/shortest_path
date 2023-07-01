@@ -11,6 +11,17 @@ use crate::tests::*;
 
 fn main() {
     let graph = Graph::from_file("data/germany.fmi");
+
+    let zero_cost_edges: Vec<usize> = graph
+        .edges
+        .iter()
+        .enumerate()
+        .filter(|(_, edge)| edge.cost == 0)
+        .map(|(i, _)| i)
+        .collect();
+
+    println!("there are {} zero cost edges", zero_cost_edges.len());
+
     let max_edge_cost = graph.edges.iter().map(|edge| edge.cost).max().unwrap();
     println!("max edge cost is {}", max_edge_cost);
     let dijkstra = Dijkstra {

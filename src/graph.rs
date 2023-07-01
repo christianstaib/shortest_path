@@ -23,57 +23,87 @@ pub struct Graph {
     pub edges_start_at: Vec<usize>,
 }
 
+pub fn get_nodes_and_edges(filename: &str) -> (Vec<Node>, Vec<Edge>) {
+    let file = File::open(filename).unwrap();
+    let reader = io::BufReader::new(file);
+
+    let mut lines = reader.lines().skip(SKIP_LINES);
+    let number_of_nodes: usize = lines.by_ref().next().unwrap().unwrap().parse().unwrap();
+    let number_of_edges: usize = lines.by_ref().next().unwrap().unwrap().parse().unwrap();
+
+    let nodes: Vec<Node> = lines
+        .by_ref()
+        .take(number_of_nodes)
+        .map(|node_line| {
+            let node_line = node_line.unwrap();
+            let mut values = node_line.split_whitespace();
+            let node_id: usize = values.next().unwrap().parse().unwrap();
+            let _node_id2: usize = values.next().unwrap().parse().unwrap();
+            let latitude: f32 = values.next().unwrap().parse().unwrap();
+            let longitude: f32 = values.next().unwrap().parse().unwrap();
+            let _elevation: f32 = values.next().unwrap().parse().unwrap();
+
+            Node {
+                id: node_id,
+                latitude,
+                longitude,
+            }
+        })
+        .collect();
+
+    let edges: Vec<Edge> = lines
+        .by_ref()
+        .take(number_of_edges)
+        .map(|edge_line| {
+            let line = edge_line.unwrap();
+            let mut values = line.split_whitespace();
+            let source_id: usize = values.next().unwrap().parse().unwrap();
+            let target_id: usize = values.next().unwrap().parse().unwrap();
+            let cost: u32 = values.next().unwrap().parse().unwrap();
+            let _type: u32 = values.next().unwrap().parse().unwrap();
+            let _maxspeed: usize = values.next().unwrap().parse().unwrap();
+
+            Edge {
+                source_id,
+                target_id,
+                cost,
+            }
+        })
+        .collect();
+
+    (nodes, edges)
+}
 impl Graph {
     pub fn from_file(filename: &str) -> Graph {
-        let file = File::open(filename).unwrap();
-        let reader = io::BufReader::new(file);
+        let nodes_and_edges = get_nodes_and_edges(filename);
 
-        let mut lines = reader.lines().skip(SKIP_LINES);
-        let number_of_nodes: usize = lines.by_ref().next().unwrap().unwrap().parse().unwrap();
-        let number_of_edges: usize = lines.by_ref().next().unwrap().unwrap().parse().unwrap();
-
-        let nodes: Vec<Node> = lines
-            .by_ref()
-            .take(number_of_nodes)
-            .map(|node_line| {
-                let node_line = node_line.unwrap();
-                let mut values = node_line.split_whitespace();
-                let node_id: usize = values.next().unwrap().parse().unwrap();
-                let _node_id2: usize = values.next().unwrap().parse().unwrap();
-                let latitude: f32 = values.next().unwrap().parse().unwrap();
-                let longitude: f32 = values.next().unwrap().parse().unwrap();
-                let _elevation: f32 = values.next().unwrap().parse().unwrap();
-
-                Node {
-                    id: node_id,
-                    latitude,
-                    longitude,
-                }
-            })
-            .collect();
-
-        let mut edges: Vec<Edge> = lines
-            .by_ref()
-            .take(number_of_edges)
-            .map(|edge_line| {
-                let line = edge_line.unwrap();
-                let mut values = line.split_whitespace();
-                let source_id: usize = values.next().unwrap().parse().unwrap();
-                let target_id: usize = values.next().unwrap().parse().unwrap();
-                let cost: u32 = values.next().unwrap().parse().unwrap();
-                let _type: u32 = values.next().unwrap().parse().unwrap();
-                let _maxspeed: usize = values.next().unwrap().parse().unwrap();
-
-                Edge {
-                    source_id,
-                    target_id,
-                    cost,
-                }
-            })
-            .collect();
+        let nodes = nodes_and_edges.0;
+        let mut edges = nodes_and_edges.1;
+        let number_of_nodes = nodes.len();
 
         let edges_start_for_node: Vec<usize> =
             get_edges_start_for_node(&mut edges, number_of_nodes);
+
+        Graph {
+            nodes: nodes.clone(),
+            edges: edges.clone(),
+            edges_start_at: edges_start_for_node.clone(),
+        }
+    }
+
+    pub fn invert(&self) -> Graph {
+        let nodes = self.nodes.clone();
+        let mut edges = self
+            .edges
+            .iter()
+            .map(|edge| Edge {
+                source_id: edge.target_id,
+                target_id: edge.source_id,
+                cost: edge.cost,
+            })
+            .collect();
+
+        let edges_start_for_node: Vec<usize> = get_edges_start_for_node(&mut edges, nodes.len());
 
         Graph {
             nodes: nodes.clone(),

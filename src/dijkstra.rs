@@ -1,5 +1,4 @@
 use crate::graph::*;
-use rayon::prelude::*;
 
 pub struct Dijkstra {
     pub graph: Graph,
@@ -38,7 +37,7 @@ impl Dijkstra {
                 let end_edge_id = self.graph.edges_start_at[node_id + 1];
                 self.graph
                     .edges
-                    .par_iter()
+                    .iter()
                     .enumerate()
                     .skip(start_edge_id)
                     .take(end_edge_id - start_edge_id)
