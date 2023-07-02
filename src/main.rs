@@ -28,17 +28,22 @@ fn main() {
         let start_main = Instant::now();
         let route = dijkstra.get_route(test.from, test.to);
         let end_main = start_main.elapsed();
+        let mut cost = -1;
+        let mut seen_nodes = -1;
         if let Some(route) = route {
-            println!(
-                "{:>9} -> {:>9} diff: {:>9}, time: {:2.2?}s, seen {:>9} nodes",
-                test.from,
-                test.to,
-                route.cost as i32 - test.cost as i32,
-                end_main.as_secs_f32(),
-                route.seen_nodes,
-            );
+            cost = route.cost as i32;
+            seen_nodes = route.seen_nodes as i32;
         }
         times.push(end_main);
+
+        println!(
+            "{:>9} -> {:>9} diff: {:>9}, time: {:2.2?}s, seen {:>9} nodes",
+            test.from,
+            test.to,
+            cost - test.cost,
+            end_main.as_secs_f32(),
+            seen_nodes,
+        );
     }
     let all: Duration = times.iter().sum();
     println!("avg {:.?}", all / test_cases.len() as u32);
