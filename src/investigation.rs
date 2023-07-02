@@ -1,6 +1,7 @@
+use crate::dijkstra::*;
 use crate::graph::*;
 
-pub fn find_intersections(graph: &Graph, degree: usize) -> Vec<usize> {
+pub fn _find_intersections(graph: &Graph, degree: usize) -> Vec<usize> {
     let mut in_or_out: Vec<Vec<usize>> = vec![Vec::new(); graph.nodes.len()];
     for edge in &graph.edges {
         if !in_or_out[edge.source_id].contains(&edge.target_id) {
@@ -21,14 +22,24 @@ pub fn find_intersections(graph: &Graph, degree: usize) -> Vec<usize> {
     intersections
 }
 
-//pub fn calculate_h_for_every_node(graph: &Graph) {
-//    let h_factor = get_h_factor(graph).unwrap() as f32;
-//    let start = Instant::now();
-//    let _: Vec<u32> = graph
-//        .nodes
-//        .iter()
-//        .map(|node| (h_factor * distance(&node, &graph.nodes[123])) as u32)
-//        .collect();
-//    let end = start.elapsed();
-//    println!("all distance took {:.?}", end);
-//}
+pub fn _find_unreachable(graph: &Graph, source: usize) -> Vec<usize> {
+    let dijkstra = Dijkstra::new(graph.clone());
+    dijkstra
+        .get_cost_from(source)
+        .iter()
+        .enumerate()
+        .filter(|(_, &cost)| cost == u32::MAX)
+        .map(|(i, _)| i)
+        .collect()
+}
+
+pub fn _find_reachable(graph: &Graph, source: usize) -> Vec<usize> {
+    let dijkstra = Dijkstra::new(graph.clone());
+    dijkstra
+        .get_cost_from(source)
+        .iter()
+        .enumerate()
+        .filter(|(_, &cost)| cost != u32::MAX)
+        .map(|(i, _)| i)
+        .collect()
+}

@@ -23,13 +23,14 @@ impl Dijkstra {
         route
     }
 
-    fn _get_used_edges(&self, start_node_id: usize, end_node_id: usize) -> Vec<Option<usize>> {
+    fn _get_used_edges(&self, start_node_id: usize, end_node_id: usize) -> Vec<usize> {
         let mut queue = BucketQueue::new(self.max_edge_cost);
         let mut is_expanded: Vec<bool> = vec![false; self.graph.nodes.len()];
-        let mut incoming_edge_id: Vec<Option<usize>> = vec![None; self.graph.nodes.len()];
+        let mut incoming_edge_id: Vec<usize> = vec![usize::MAX; self.graph.nodes.len()];
         let mut node_cost: Vec<u32> = vec![u32::MAX; self.graph.nodes.len()];
 
         queue.push(0, start_node_id);
+        node_cost[start_node_id] = 0;
         while let Some(current_node_id) = queue.pop() {
             if current_node_id == end_node_id {
                 break;
@@ -44,7 +45,7 @@ impl Dijkstra {
                 let edge = &self.graph.edges[edge_id];
                 let alternative_cost = node_cost[current_node_id] + edge.cost;
                 if alternative_cost < node_cost[edge.target_id] {
-                    incoming_edge_id[edge.target_id] = Some(edge_id);
+                    incoming_edge_id[edge.target_id] = edge_id;
                     node_cost[edge.target_id] = alternative_cost;
                     queue.push(alternative_cost as usize, edge.target_id);
                 }
@@ -60,6 +61,7 @@ impl Dijkstra {
         let mut node_cost: Vec<u32> = vec![u32::MAX; self.graph.nodes.len()];
 
         queue.push(0, start_node_id);
+        node_cost[start_node_id] = 0;
         while let Some(current_node_id) = queue.pop() {
             if is_expanded[current_node_id] {
                 continue;

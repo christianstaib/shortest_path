@@ -5,21 +5,19 @@ mod a_star;
 mod dijkstra;
 mod graph;
 mod investigation;
+mod landmark_heuristic;
 mod node_map;
 mod queue;
 mod route;
 mod tests;
 use crate::a_star::*;
 use crate::graph::*;
-use crate::investigation::find_intersections;
 use crate::tests::*;
 
 fn main() {
+    let start = Instant::now();
     let graph = Graph::from_file("data/germany.fmi");
-    println!(
-        "{} nodes are intesections",
-        find_intersections(&graph, 7).len()
-    );
+    println!("loading file took {}s", start.elapsed().as_secs_f32());
 
     let dijkstra = AStar::new(graph);
     let mut times: Vec<Duration> = Vec::new();
@@ -45,6 +43,10 @@ fn main() {
             seen_nodes,
         );
     }
+    let times: Vec<Duration> = times
+        .into_iter()
+        .filter(|x| x.as_secs_f32() < 10.0)
+        .collect();
     let all: Duration = times.iter().sum();
     println!("avg {:.?}", all / test_cases.len() as u32);
 }

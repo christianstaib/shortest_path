@@ -1,6 +1,4 @@
-use crate::dijkstra::Dijkstra;
-use crate::{investigation::*, route};
-use std::f32::consts::PI;
+use indicatif::ProgressBar;
 use std::fs::File;
 use std::io::{self, BufRead};
 const SKIP_LINES: usize = 5;
@@ -27,7 +25,7 @@ pub struct Graph {
     pub edges_start_at: Vec<usize>,
 }
 
-pub fn min_cost_per_unit(graph: &Graph) -> f32 {
+pub fn _min_cost_per_unit(graph: &Graph) -> f32 {
     graph
         .edges
         .iter()
@@ -70,10 +68,17 @@ impl Graph {
         let number_of_nodes: usize = lines.by_ref().next().unwrap().unwrap().parse().unwrap();
         let number_of_edges: usize = lines.by_ref().next().unwrap().unwrap().parse().unwrap();
 
+        let mut i = 0;
+        let bar = ProgressBar::new((number_of_nodes + number_of_edges) as u64);
         let nodes: Vec<Node> = lines
             .by_ref()
             .take(number_of_nodes)
             .map(|node_line| {
+                i += 1;
+                if i % 10_000 == 0 {
+                    bar.inc(10_000);
+                }
+
                 let node_line = node_line.unwrap();
                 let mut values = node_line.split_whitespace();
                 let id: usize = values.next().unwrap().parse().unwrap();
@@ -94,6 +99,11 @@ impl Graph {
             .by_ref()
             .take(number_of_edges)
             .map(|edge_line| {
+                i += 1;
+                if i % 10_000 == 0 {
+                    bar.inc(10_000);
+                }
+
                 let line = edge_line.unwrap();
                 let mut values = line.split_whitespace();
                 let source_id: usize = values.next().unwrap().parse().unwrap();
@@ -109,6 +119,8 @@ impl Graph {
                 }
             })
             .collect();
+
+        bar.finish();
 
         (nodes, edges)
     }
