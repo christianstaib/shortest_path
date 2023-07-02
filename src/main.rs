@@ -2,6 +2,7 @@ use std::time::Duration;
 use std::time::Instant;
 
 mod a_star;
+mod bidirectional_dijkstra;
 mod dijkstra;
 mod graph;
 mod investigation;
@@ -14,14 +15,18 @@ use crate::a_star::*;
 use crate::graph::*;
 use crate::tests::*;
 
+const GRAPH_FILE: &str = "data/germany.fmi";
+const SOLL_FILE: &str = "benchs/germany2.sol";
+const QUEUE_FILE: &str = "benchs/germany2.que";
+
 fn main() {
     let start = Instant::now();
-    let graph = Graph::from_file("data/germany.fmi");
+    let graph = Graph::from_file(GRAPH_FILE);
     println!("loading file took {}s", start.elapsed().as_secs_f32());
 
     let dijkstra = AStar::new(graph);
     let mut times: Vec<Duration> = Vec::new();
-    let test_cases = get_test_cases();
+    let test_cases = get_test_cases(QUEUE_FILE, SOLL_FILE);
     for test in &test_cases {
         let start_main = Instant::now();
         let route = dijkstra.get_route(test.source, test.target);
