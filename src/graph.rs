@@ -1,3 +1,6 @@
+use crate::dijkstra::Dijkstra;
+use crate::{investigation::*, route};
+use std::f32::consts::PI;
 use std::fs::File;
 use std::io::{self, BufRead};
 const SKIP_LINES: usize = 5;
@@ -24,6 +27,25 @@ pub struct Graph {
     pub edges_start_at: Vec<usize>,
 }
 
+pub fn haversine_distance(node1: &Node, node2: &Node) -> f32 {
+    let lat1_rad = node1.latitude.to_radians();
+    let lon1_rad = node1.longitude.to_radians();
+    let lat2_rad = node2.latitude.to_radians();
+    let lon2_rad = node2.longitude.to_radians();
+
+    let delta_lat = lat2_rad - lat1_rad;
+    let delta_lon = lon2_rad - lon1_rad;
+
+    let a = (delta_lat / 2.0).sin().powi(2)
+        + lat1_rad.cos() * lat2_rad.cos() * (delta_lon / 2.0).sin().powi(2);
+    let c = 2.0 * a.sqrt().atan2((1.0 - a).sqrt());
+
+    // Radius of earth in kilometers. Use 3956 for miles. Uses 6371 for kilometers.
+    let r = 6371.0;
+
+    // Calculate the distance
+    r * c
+}
 pub fn min_cost_per_unit(graph: &Graph) -> f32 {
     graph
         .edges
@@ -50,11 +72,13 @@ impl Graph {
         let edges_start_for_node: Vec<usize> =
             get_edges_start_for_node(&mut edges, number_of_nodes);
 
-        Graph {
+        let graph = Graph {
             nodes: nodes.clone(),
             edges: edges.clone(),
             edges_start_at: edges_start_for_node.clone(),
-        }
+        };
+
+        graph
     }
 
     fn get_nodes_and_edges(filename: &str) -> (Vec<Node>, Vec<Edge>) {
@@ -76,10 +100,6 @@ impl Graph {
                 let latitude: f32 = values.next().unwrap().parse().unwrap();
                 let longitude: f32 = values.next().unwrap().parse().unwrap();
                 let _elevation: f32 = values.next().unwrap().parse().unwrap();
-
-                if _elevation != 0.0 {
-                    println!("elevation {}", _elevation);
-                }
 
                 Node {
                     id,

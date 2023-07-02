@@ -4,16 +4,22 @@ use std::time::Instant;
 mod a_star;
 mod dijkstra;
 mod graph;
+mod investigation;
 mod node_map;
 mod queue;
 mod route;
 mod tests;
 use crate::a_star::*;
 use crate::graph::*;
+use crate::investigation::find_intersections;
 use crate::tests::*;
 
 fn main() {
     let graph = Graph::from_file("data/germany.fmi");
+    println!(
+        "{} nodes are intesections",
+        find_intersections(&graph, 7).len()
+    );
 
     let dijkstra = AStar::new(graph);
     let mut times: Vec<Duration> = Vec::new();

@@ -6,7 +6,6 @@ use rand::Rng;
 
 pub struct AStar {
     graph: Graph,
-    cost_per_unit: f32,
     max_h_value: usize,
     cost_to: Vec<Vec<u32>>,
     cost_from: Vec<Vec<u32>>,
@@ -54,11 +53,8 @@ impl AStar {
         let max_h_value =
             3 * (cost_per_unit * _distance(&min_max_nodes.0, &min_max_nodes.1)) as usize;
 
-        println!("max h value {}", max_h_value);
-
         AStar {
             graph,
-            cost_per_unit,
             max_h_value,
             cost_to,
             cost_from,
@@ -72,12 +68,10 @@ impl AStar {
     }
 
     fn _get_used_edges(&self, from_id: usize, to_id: usize) -> Vec<Option<usize>> {
-        let mut buckets: Vec<Vec<usize>> = vec![Vec::new(); self.max_h_value];
+        let mut buckets: Vec<Vec<usize>> = vec![Vec::new(); self.max_h_value * 2];
         let mut incoming_edge: Vec<Option<usize>> = vec![None; self.graph.nodes.len()];
         let mut node_cost: Vec<u32> = vec![u32::MAX; self.graph.nodes.len()];
         let mut is_expanded: Vec<bool> = vec![false; self.graph.nodes.len()];
-
-        let to_node = &self.graph.nodes[to_id];
 
         buckets[0].push(from_id);
         let mut nodes_in_buckets = 1;
@@ -98,34 +92,16 @@ impl AStar {
                         incoming_edge[edge.target_id] = Some(edge_id);
                         node_cost[edge.target_id] = alternative_cost;
 
-                        let distance = _distance(&self.graph.nodes[edge.target_id], to_node);
-
-                        let h_value = (distance * self.cost_per_unit) as u32;
                         let h_value = self
                             .cost_to
                             .iter()
                             .zip(self.cost_from.iter())
                             .map(|(cost_to, cost_from)| {
-                                (if cost_to[edge.target_id] != u32::MAX {
-                                    cost_to[edge.target_id]
-                                        .checked_sub(cost_to[to_id])
-                                        .unwrap_or(0)
-                                } else {
-                                    0
-                                })
-                                .max(
-                                    if cost_from[to_id] != u32::MAX {
-                                        cost_from[to_id]
-                                            .checked_sub(cost_from[edge.target_id])
-                                            .unwrap_or(0)
-                                    } else {
-                                        0
-                                    },
-                                )
+                                (cost_to[edge.target_id] as i32 - cost_to[to_id] as i32)
+                                    .max(cost_from[to_id] as i32 - cost_from[edge.target_id] as i32)
                             })
                             .max()
-                            .unwrap()
-                            .max(h_value);
+                            .unwrap();
 
                         //println!("h_value {}", h_value);
 
