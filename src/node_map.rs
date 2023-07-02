@@ -1,4 +1,4 @@
-use crate::{a_star::_get_min_max_nodes, graph::*};
+use crate::graph::*;
 
 pub struct NodeMap {
     pub map: Vec<Vec<Vec<usize>>>,
@@ -11,7 +11,7 @@ fn evenly_spaced_numbers(start: f32, end: f32, n: usize) -> Vec<f32> {
 
 impl NodeMap {
     pub fn new(graph: &Graph, resolution: usize) -> NodeMap {
-        let min_max_nodes = _get_min_max_nodes(graph);
+        let min_max_nodes = graph.get_bounding_nodes();
         let mut map = vec![vec![Vec::new(); resolution]; resolution];
         let lat_min = min_max_nodes.0.latitude;
         let lat_max = min_max_nodes.1.latitude;

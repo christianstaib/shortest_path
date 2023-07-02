@@ -15,26 +15,29 @@ impl LandmarkHeuristic {
         let inverted_dijkstra = Dijkstra::new(graph.clone_and_invert());
 
         let mut rng = rand::thread_rng();
-        let mut cost_to: Vec<Vec<u32>> = Vec::new();
-        let mut cost_from: Vec<Vec<u32>> = Vec::new();
-        let node_map = NodeMap::new(&graph, resolution);
-        for square in node_map
+        let mut single_source_cost: Vec<Vec<u32>> = Vec::new();
+        let mut single_destination_cost: Vec<Vec<u32>> = Vec::new();
+        let map = NodeMap::new(&graph, resolution);
+        for area in map
             .map
             .iter()
             .flatten()
-            .progress_count(node_map.map.len().pow(2) as u64)
+            .progress_count(map.map.len().pow(2) as u64)
         {
-            if !square.is_empty() {
-                let landmark = square[rng.gen_range(0..square.len())];
-                cost_to.push(inverted_dijkstra.get_cost_from(landmark));
-                cost_from.push(dijkstra.get_cost_from(landmark));
+            if !area.is_empty() {
+                let landmark = area[rng.gen_range(0..area.len())];
+                single_source_cost.push(inverted_dijkstra.single_source_shortest_path(landmark));
+                single_destination_cost.push(dijkstra.single_source_shortest_path(landmark));
             }
         }
 
-        LandmarkHeuristic { cost_to, cost_from }
+        LandmarkHeuristic {
+            cost_to: single_source_cost,
+            cost_from: single_destination_cost,
+        }
     }
 
-    pub fn h_value(&self, source_id: usize, target_id: usize) -> u32 {
+    pub fn distance(&self, source_id: usize, target_id: usize) -> u32 {
         let max_cost_to = self
             .cost_to
             .iter()

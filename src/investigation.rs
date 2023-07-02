@@ -25,7 +25,7 @@ pub fn _find_intersections(graph: &Graph, degree: usize) -> Vec<usize> {
 pub fn _find_unreachable(graph: &Graph, source: usize) -> Vec<usize> {
     let dijkstra = Dijkstra::new(graph.clone());
     dijkstra
-        .get_cost_from(source)
+        .single_source_shortest_path(source)
         .iter()
         .enumerate()
         .filter(|(_, &cost)| cost == u32::MAX)
@@ -36,7 +36,7 @@ pub fn _find_unreachable(graph: &Graph, source: usize) -> Vec<usize> {
 pub fn _find_reachable(graph: &Graph, source: usize) -> Vec<usize> {
     let dijkstra = Dijkstra::new(graph.clone());
     dijkstra
-        .get_cost_from(source)
+        .single_source_shortest_path(source)
         .iter()
         .enumerate()
         .filter(|(_, &cost)| cost != u32::MAX)

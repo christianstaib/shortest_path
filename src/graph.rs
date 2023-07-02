@@ -145,6 +145,45 @@ impl Graph {
             edges_start_at: edges_start_for_node.clone(),
         }
     }
+
+    pub fn get_bounding_nodes(&self) -> (Node, Node) {
+        let min_lat = self
+            .nodes
+            .iter()
+            .map(|node| node.latitude)
+            .min_by(|x, y| x.total_cmp(y))
+            .unwrap();
+        let max_lat = self
+            .nodes
+            .iter()
+            .map(|node| node.latitude)
+            .max_by(|x, y| x.total_cmp(y))
+            .unwrap();
+        let min_long = self
+            .nodes
+            .iter()
+            .map(|node| node.longitude)
+            .min_by(|x, y| x.total_cmp(y))
+            .unwrap();
+        let max_long = self
+            .nodes
+            .iter()
+            .map(|node| node.longitude)
+            .max_by(|x, y| x.total_cmp(y))
+            .unwrap();
+        (
+            Node {
+                id: 0,
+                latitude: min_lat,
+                longitude: min_long,
+            },
+            Node {
+                id: 0,
+                latitude: max_lat,
+                longitude: max_long,
+            },
+        )
+    }
 }
 
 pub fn get_edges_start_for_node(edges: &mut Vec<Edge>, number_of_nodes: usize) -> Vec<usize> {

@@ -24,7 +24,7 @@ fn main() {
     let test_cases = get_test_cases();
     for test in &test_cases {
         let start_main = Instant::now();
-        let route = dijkstra.get_route(test.from, test.to);
+        let route = dijkstra.get_route(test.source, test.target);
         let end_main = start_main.elapsed();
         let mut cost = -1;
         let mut seen_nodes = -1;
@@ -36,8 +36,8 @@ fn main() {
 
         println!(
             "{:>9} -> {:>9} diff: {:>9}, time: {:2.2?}s, seen {:>9} nodes",
-            test.from,
-            test.to,
+            test.source,
+            test.target,
             cost - test.cost,
             end_main.as_secs_f32(),
             seen_nodes,

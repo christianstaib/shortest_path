@@ -3,8 +3,8 @@ use std::io::{BufRead, BufReader};
 
 #[derive(Clone)]
 pub struct TestRoute {
-    pub from: usize,
-    pub to: usize,
+    pub source: usize,
+    pub target: usize,
     pub cost: i32,
 }
 
@@ -12,14 +12,15 @@ pub fn get_test_cases() -> Vec<TestRoute> {
     let file = File::open("benchs/germany2.que").expect("Failed to open file");
     let reader = BufReader::new(file);
 
-    let mut from_to: Vec<(usize, usize)> = Vec::new();
+    let mut source_target: Vec<(usize, usize)> = Vec::new();
 
     for line in reader.lines() {
         if let Ok(line) = line {
-            let mut iter = line.split_whitespace();
-            if let (Some(from), Some(to)) = (iter.next(), iter.next()) {
-                if let (Ok(fom), Ok(to)) = (from.parse::<usize>(), to.parse::<usize>()) {
-                    from_to.push((fom, to));
+            let mut split_line = line.split_whitespace();
+            if let (Some(source), Some(target)) = (split_line.next(), split_line.next()) {
+                if let (Ok(source), Ok(target)) = (source.parse::<usize>(), target.parse::<usize>())
+                {
+                    source_target.push((source, target));
                 }
             }
         }
@@ -28,21 +29,21 @@ pub fn get_test_cases() -> Vec<TestRoute> {
     let file = File::open("benchs/germany2.sol").expect("Failed to open file");
     let reader = BufReader::new(file);
 
-    let mut soll_vec: Vec<i32> = Vec::new();
+    let mut costs: Vec<i32> = Vec::new();
 
     for line in reader.lines() {
         if let Ok(line) = line {
-            let soll: i32 = line.parse().unwrap();
-            soll_vec.push(soll);
+            let cost: i32 = line.parse().unwrap();
+            costs.push(cost);
         }
     }
 
-    from_to
+    source_target
         .iter()
-        .zip(soll_vec.iter())
+        .zip(costs.iter())
         .map(|((from, to), cost)| TestRoute {
-            from: *from,
-            to: *to,
+            source: *from,
+            target: *to,
             cost: *cost,
         })
         .collect()
