@@ -1,15 +1,15 @@
 use crate::dijkstra::*;
 use crate::graph::*;
-use crate::queue::*;
-//use rand::Rng;
-use std::collections::BinaryHeap;
-use std::thread;
-use std::time::Duration;
+use crate::node_map::*;
+use crate::route::*;
+use rand::Rng;
 
 pub struct AStar {
     graph: Graph,
-    cost_from: Vec<Vec<u32>>,
+    cost_per_unit: f32,
+    max_h_value: usize,
     cost_to: Vec<Vec<u32>>,
+    cost_from: Vec<Vec<u32>>,
 }
 
 impl AStar {
@@ -19,119 +19,128 @@ impl AStar {
             edges: graph.edges.clone(),
             edges_start_at: graph.edges_start_at.clone(),
         };
-        let inverted_graph = graph_copy.invert();
 
-        let max_edge_cost = graph_copy.edges.iter().map(|edge| edge.cost).max().unwrap();
+        let max_edge_cost = graph_copy.edges.iter().map(|edge| edge.cost).max().unwrap() as usize;
+        let inverted_dijkstra = Dijkstra {
+            graph: graph_copy.clone_and_invert(),
+            max_edge_cost,
+        };
+
         let dijkstra = Dijkstra {
             graph: graph_copy,
-            max_edge_cost: max_edge_cost as usize,
+            max_edge_cost,
         };
 
-        let max_inverted_edge_cost = inverted_graph
-            .edges
-            .iter()
-            .map(|edge| edge.cost)
-            .max()
-            .unwrap();
-        let inverted_dijkstra = Dijkstra {
-            graph: inverted_graph,
-            max_edge_cost: max_inverted_edge_cost as usize,
-        };
-
-        //let mut rng = rand::thread_rng();
-        let mut cost_from: Vec<Vec<u32>> = Vec::new();
+        let mut rng = rand::thread_rng();
         let mut cost_to: Vec<Vec<u32>> = Vec::new();
-        for landmark in [12] {
-            //, 234, 3456, 45678, 567890] {
-            println!("calculating landmark no {}", landmark);
-            //let landmark = rng.gen_range(0..dijkstra.graph.nodes.len());
-            cost_from.push(dijkstra.get_costs_from_source(landmark));
-            cost_to.push(inverted_dijkstra.get_costs_from_source(landmark));
+        let mut cost_from: Vec<Vec<u32>> = Vec::new();
+        let node_map = NodeMap::new(&graph, 4);
+        for (i, square) in node_map.map.iter().flatten().enumerate() {
+            println!(
+                "calculating landmark {} of {} (choose one of {})",
+                i + 1,
+                node_map.map.len().pow(2),
+                square.len()
+            );
+            if !square.is_empty() {
+                let landmark = square[rng.gen_range(0..square.len())];
+                cost_to.push(inverted_dijkstra.get_cost_from(landmark));
+                cost_from.push(dijkstra.get_cost_from(landmark));
+            }
         }
+
+        let min_max_nodes = _get_min_max_nodes(&graph);
+        let cost_per_unit = min_cost_per_unit(&graph);
+        let max_h_value =
+            3 * (cost_per_unit * _distance(&min_max_nodes.0, &min_max_nodes.1)) as usize;
+
+        println!("max h value {}", max_h_value);
 
         AStar {
             graph,
-            cost_from,
+            cost_per_unit,
+            max_h_value,
             cost_to,
+            cost_from,
         }
     }
 
     pub fn get_route(&self, source_id: usize, target_id: usize) -> Option<Route> {
-        let used_edges = self.a_star(source_id, target_id);
+        let used_edges = self._get_used_edges(source_id, target_id);
         let route = get_route(&self.graph, source_id, target_id, used_edges);
         route
     }
 
-    pub fn a_star(&self, from_node_id: usize, to_node_id: usize) -> Vec<Option<usize>> {
-        let dijkstra = Dijkstra::_new(self.graph.invert());
-        let true_cost = dijkstra.get_costs_from_source(to_node_id);
-        let mut is_admissible = true;
-
-        let mut queue: BinaryHeap<State> = BinaryHeap::new();
-
-        queue.push(State {
-            node_cost: 0,
-            node_id: from_node_id,
-        });
-
-        let mut edge_from_predecessor: Vec<Option<usize>> = vec![None; self.graph.nodes.len()];
+    fn _get_used_edges(&self, from_id: usize, to_id: usize) -> Vec<Option<usize>> {
+        let mut buckets: Vec<Vec<usize>> = vec![Vec::new(); self.max_h_value];
+        let mut incoming_edge: Vec<Option<usize>> = vec![None; self.graph.nodes.len()];
         let mut node_cost: Vec<u32> = vec![u32::MAX; self.graph.nodes.len()];
         let mut is_expanded: Vec<bool> = vec![false; self.graph.nodes.len()];
 
-        while !queue.is_empty() {
-            let state = queue.pop().unwrap();
-            if is_expanded[state.node_id] {
-                continue;
-            }
-            if state.node_id == to_node_id {
-                break;
-            }
-            is_expanded[state.node_id] = true;
+        let to_node = &self.graph.nodes[to_id];
 
-            for edge_id in self.graph.edges_start_at[state.node_id]
-                ..self.graph.edges_start_at[state.node_id + 1]
-            {
-                let edge = &self.graph.edges[edge_id];
-                let alternative_cost = node_cost[state.node_id] + edge.cost;
-                if alternative_cost < node_cost[edge.target_id] {
-                    edge_from_predecessor[edge.target_id] = Some(edge_id);
-                    node_cost[edge.target_id] = alternative_cost;
+        buckets[0].push(from_id);
+        let mut nodes_in_buckets = 1;
+        'outer: for i in 0..self.max_h_value {
+            while let Some(node_id) = buckets[i].pop() {
+                nodes_in_buckets -= 1;
+                if node_id == to_id {
+                    break 'outer;
+                }
+                is_expanded[node_id] = true;
 
-                    let mut h_value = 0;
-                    for i in 0..self.cost_from.len() {
-                        let cost_from = &self.cost_from[i];
-                        if cost_from[edge.target_id] > cost_from[to_node_id] {
-                            h_value = std::cmp::max(
-                                h_value,
-                                cost_from[edge.target_id] - cost_from[to_node_id],
-                            );
-                        }
-                        let cost_to = &self.cost_to[i];
-                        if cost_to[to_node_id] > cost_to[edge.target_id] {
-                            h_value = std::cmp::max(
-                                h_value,
-                                cost_to[to_node_id] - cost_to[edge.target_id],
-                            )
-                        }
-                        if h_value >= 1 {
-                            h_value -= 1;
-                        }
+                let start_edge_id = self.graph.edges_start_at[node_id];
+                let end_edge_id = self.graph.edges_start_at[node_id + 1];
+                for edge_id in start_edge_id..end_edge_id {
+                    let edge = &self.graph.edges[edge_id];
+                    let alternative_cost = node_cost[node_id] + edge.cost;
+                    if alternative_cost < node_cost[edge.target_id] {
+                        incoming_edge[edge.target_id] = Some(edge_id);
+                        node_cost[edge.target_id] = alternative_cost;
+
+                        let distance = _distance(&self.graph.nodes[edge.target_id], to_node);
+
+                        let h_value = (distance * self.cost_per_unit) as u32;
+                        let h_value = self
+                            .cost_to
+                            .iter()
+                            .zip(self.cost_from.iter())
+                            .map(|(cost_to, cost_from)| {
+                                (if cost_to[edge.target_id] != u32::MAX {
+                                    cost_to[edge.target_id]
+                                        .checked_sub(cost_to[to_id])
+                                        .unwrap_or(0)
+                                } else {
+                                    0
+                                })
+                                .max(
+                                    if cost_from[to_id] != u32::MAX {
+                                        cost_from[to_id]
+                                            .checked_sub(cost_from[edge.target_id])
+                                            .unwrap_or(0)
+                                    } else {
+                                        0
+                                    },
+                                )
+                            })
+                            .max()
+                            .unwrap()
+                            .max(h_value);
+
+                        //println!("h_value {}", h_value);
+
+                        buckets[alternative_cost as usize + h_value as usize].push(edge.target_id);
+                        nodes_in_buckets += 1
                     }
+                }
 
-                    if h_value > true_cost[edge.target_id] {
-                        is_admissible = false;
-                    }
-
-                    queue.push(State {
-                        node_cost: alternative_cost + true_cost[edge.target_id],
-                        node_id: edge.target_id,
-                    });
+                if nodes_in_buckets == 0 {
+                    break 'outer;
                 }
             }
         }
 
-        println!("next line is corrcect? {}", is_admissible);
-        edge_from_predecessor
+        incoming_edge
     }
 }
 

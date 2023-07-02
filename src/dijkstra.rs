@@ -1,4 +1,6 @@
 use crate::graph::*;
+use crate::queue::*;
+use crate::route::*;
 
 pub struct Dijkstra {
     pub graph: Graph,
@@ -6,7 +8,7 @@ pub struct Dijkstra {
 }
 
 impl Dijkstra {
-    pub fn _new(graph: Graph) -> Dijkstra {
+    pub fn new(graph: Graph) -> Dijkstra {
         let max_edge_cost = graph.edges.iter().map(|edge| edge.cost).max().unwrap() as usize;
         Dijkstra {
             graph,
@@ -14,99 +16,69 @@ impl Dijkstra {
         }
     }
 
-    pub fn _get_route(&self, from_id: usize, to_id: usize) -> Option<Route> {
+    pub fn get_route(&self, from_id: usize, to_id: usize) -> Option<Route> {
         let used_edges = self._get_used_edges(from_id, to_id);
         let route = get_route(&self.graph, from_id, to_id, used_edges);
 
         route
     }
 
-    pub fn get_costs_from_source(&self, from_id: usize) -> Vec<u32> {
-        let mod_number = self.max_edge_cost as usize + 1;
-        let mut buckets: Vec<Vec<usize>> = vec![Vec::new(); mod_number];
-        let mut edge_from_predecessor: Vec<Option<usize>> = vec![None; self.graph.nodes.len()];
-        let mut node_cost: Vec<u32> = vec![u32::MAX; self.graph.nodes.len()];
+    fn _get_used_edges(&self, start_node_id: usize, end_node_id: usize) -> Vec<Option<usize>> {
+        let mut queue = BucketQueue::new(self.max_edge_cost);
         let mut is_expanded: Vec<bool> = vec![false; self.graph.nodes.len()];
+        let mut incoming_edge_id: Vec<Option<usize>> = vec![None; self.graph.nodes.len()];
+        let mut node_cost: Vec<u32> = vec![u32::MAX; self.graph.nodes.len()];
 
-        buckets[0].push(from_id);
-        let mut nodes_in_buckets = 1;
-        'outer: for i in 0..(self.max_edge_cost * self.graph.edges.len()) {
-            while let Some(node_id) = buckets[i % mod_number].pop() {
-                nodes_in_buckets -= 1;
-                is_expanded[node_id] = true;
+        queue.push(0, start_node_id);
+        while let Some(current_node_id) = queue.pop() {
+            if current_node_id == end_node_id {
+                break;
+            } else if is_expanded[current_node_id] {
+                continue;
+            }
+            is_expanded[current_node_id] = true;
 
-                let start_edge_id = self.graph.edges_start_at[node_id];
-                let end_edge_id = self.graph.edges_start_at[node_id + 1];
-                self.graph
-                    .edges
-                    .iter()
-                    .enumerate()
-                    .skip(start_edge_id)
-                    .take(end_edge_id - start_edge_id)
-                    .for_each(|(edge_id, edge)| {
-                        let alternative_cost = node_cost[node_id] + edge.cost;
-                        if alternative_cost < node_cost[edge.target_id] {
-                            edge_from_predecessor[edge.target_id] = Some(edge_id);
-                            node_cost[edge.target_id] = alternative_cost;
-                            buckets[alternative_cost as usize % mod_number].push(edge.target_id);
-                            nodes_in_buckets += 1
-                        }
-                    });
+            let start_edge_id = self.graph.edges_start_at[current_node_id];
+            let end_edge_id = self.graph.edges_start_at[current_node_id + 1];
+            for edge_id in start_edge_id..end_edge_id {
+                let edge = &self.graph.edges[edge_id];
+                let alternative_cost = node_cost[current_node_id] + edge.cost;
+                if alternative_cost < node_cost[edge.target_id] {
+                    incoming_edge_id[edge.target_id] = Some(edge_id);
+                    node_cost[edge.target_id] = alternative_cost;
+                    queue.push(alternative_cost as usize, edge.target_id);
+                }
+            }
+        }
 
-                if nodes_in_buckets == 0 {
-                    break 'outer;
+        incoming_edge_id
+    }
+    pub fn get_cost_from(&self, start_node_id: usize) -> Vec<u32> {
+        let mut queue = BucketQueue::new(self.max_edge_cost);
+        let mut is_expanded: Vec<bool> = vec![false; self.graph.nodes.len()];
+        let mut incoming_edge_id: Vec<Option<usize>> = vec![None; self.graph.nodes.len()];
+        let mut node_cost: Vec<u32> = vec![u32::MAX; self.graph.nodes.len()];
+
+        queue.push(0, start_node_id);
+        while let Some(current_node_id) = queue.pop() {
+            if is_expanded[current_node_id] {
+                continue;
+            }
+            is_expanded[current_node_id] = true;
+
+            let start_edge_id = self.graph.edges_start_at[current_node_id];
+            let end_edge_id = self.graph.edges_start_at[current_node_id + 1];
+            for edge_id in start_edge_id..end_edge_id {
+                let edge = &self.graph.edges[edge_id];
+                let alternative_cost = node_cost[current_node_id] + edge.cost;
+                if alternative_cost < node_cost[edge.target_id] {
+                    incoming_edge_id[edge.target_id] = Some(edge_id);
+                    node_cost[edge.target_id] = alternative_cost;
+                    queue.push(alternative_cost as usize, edge.target_id);
                 }
             }
         }
 
         node_cost
-    }
-
-    fn _get_used_edges(&self, from_id: usize, to_id: usize) -> Vec<Option<usize>> {
-        let mod_number = self.max_edge_cost as usize + 1;
-        let mut buckets: Vec<Vec<usize>> = vec![Vec::new(); mod_number];
-        let mut edge_from_predecessor: Vec<Option<usize>> = vec![None; self.graph.nodes.len()];
-        let mut node_cost: Vec<u32> = vec![u32::MAX; self.graph.nodes.len()];
-        let mut is_expanded: Vec<bool> = vec![false; self.graph.nodes.len()];
-
-        buckets[0].push(from_id);
-        let mut nodes_in_buckets = 1;
-        'outer: for i in 0..(self.max_edge_cost * self.graph.edges.len()) {
-            while let Some(node_id) = buckets[i % mod_number].pop() {
-                nodes_in_buckets -= 1;
-                // not checking seems to be faster
-                // if is_expanded[node_id] {
-                //     continue;
-                // }
-                if node_id == to_id {
-                    break 'outer;
-                }
-                is_expanded[node_id] = true;
-
-                let start_edge_id = self.graph.edges_start_at[node_id];
-                let end_edge_id = self.graph.edges_start_at[node_id + 1];
-                self.graph
-                    .edges
-                    .iter()
-                    .enumerate()
-                    .skip(start_edge_id)
-                    .take(end_edge_id - start_edge_id)
-                    .for_each(|(edge_id, edge)| {
-                        let alternative_cost = node_cost[node_id] + edge.cost;
-                        if alternative_cost < node_cost[edge.target_id] {
-                            edge_from_predecessor[edge.target_id] = Some(edge_id);
-                            node_cost[edge.target_id] = alternative_cost;
-                            buckets[alternative_cost as usize % mod_number].push(edge.target_id);
-                            nodes_in_buckets += 1
-                        }
-                    });
-
-                if nodes_in_buckets == 0 {
-                    break 'outer;
-                }
-            }
-        }
-
-        edge_from_predecessor
     }
 }
