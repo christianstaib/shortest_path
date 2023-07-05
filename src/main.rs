@@ -18,7 +18,7 @@ use crate::simple_graph::SimpleGraph;
 //use crate::graph::*;
 //use crate::tests::*;
 
-const GRAPH_FILE: &str = "data/germany.fmi";
+const GRAPH_FILE: &str = "data/toy.fmi";
 const SOLL_FILE: &str = "benchs/germany2.sol";
 const QUEUE_FILE: &str = "benchs/germany2.que";
 
@@ -26,6 +26,11 @@ fn main() {
     //let start = Instant::now();
     let mut graph = SimpleGraph::from_file(GRAPH_FILE);
     graph.contract();
+    for edges in graph.outgoing_edges {
+        for edge in edges {
+            println!("{} -> {}: {}", edge.source_id, edge.target_id, edge.cost);
+        }
+    }
     //println!("loading file took {}s", start.elapsed().as_secs_f32());
 
     //let dijkstra = BiDijkstra::new(graph);

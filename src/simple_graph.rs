@@ -15,7 +15,7 @@ pub struct Edge {
 #[derive(Clone)]
 pub struct Node {
     pub id: usize,
-    //pub level: usize,
+    pub level: usize,
     //pub id2: usize,
     pub longitude: f32,
     pub latitude: f32,
@@ -32,52 +32,53 @@ impl SimpleGraph {
     pub fn contract(&mut self) {
         for (ch_level, v) in (0..self.nodes.len()).enumerate().progress() {
             for u_v_edge in self.incoming_edges[v].clone() {
-                let u = u_v_edge.source_id;
+                if self.outgoing_edges[v].len() > 0 {
+                    let u = u_v_edge.source_id;
 
-                let u_w_costs: Vec<u32> = self.outgoing_edges[v]
-                    .iter()
-                    .map(|edge| u_v_edge.cost + edge.cost)
-                    .collect();
-                let max_cost = u_w_costs.iter().max().unwrap();
+                    let u_w_costs: Vec<u32> = self.outgoing_edges[v]
+                        .iter()
+                        .map(|edge| u_v_edge.cost + edge.cost)
+                        .collect();
+                    let max_cost = u_w_costs.iter().max().unwrap();
 
-                let mut queue = BucketQueue::new(10 * *max_cost as usize);
-                //let mut cost = vec![u32::MAX; self.nodes.len()];
-                let mut cost: std::collections::HashMap<usize, u32> =
-                    std::collections::HashMap::new();
+                    let mut queue = BucketQueue::new(10 * *max_cost as usize);
+                    //let mut cost = vec![u32::MAX; self.nodes.len()];
+                    let mut cost: std::collections::HashMap<usize, u32> =
+                        std::collections::HashMap::new();
 
-                // search
-                queue.push(0, u);
-                cost.insert(u, 0);
-                while let Some(current_node_id) = queue.pop() {
-                    if current_node_id == v {
-                        continue;
-                    }
-                    if cost[&current_node_id] > *max_cost {
-                        break;
-                    }
-                    for edge in &self.outgoing_edges[current_node_id] {
-                        let alternative_cost = cost[&current_node_id] + edge.cost;
-                        let current_cost = *cost.get(&edge.target_id).unwrap_or(&u32::MAX);
-                        if alternative_cost < current_cost {
-                            cost.insert(edge.target_id, alternative_cost);
-                            queue.push(alternative_cost as usize, edge.target_id);
+                    // search
+                    queue.push(0, u);
+                    cost.insert(u, 0);
+                    while let Some(current_node_id) = queue.pop() {
+                        if current_node_id == v {
+                            continue;
+                        }
+                        if cost[&current_node_id] > *max_cost {
+                            break;
+                        }
+                        for edge in &self.outgoing_edges[current_node_id] {
+                            let alternative_cost = cost[&current_node_id] + edge.cost;
+                            let current_cost = *cost.get(&edge.target_id).unwrap_or(&u32::MAX);
+                            if alternative_cost < current_cost {
+                                cost.insert(edge.target_id, alternative_cost);
+                                queue.push(alternative_cost as usize, edge.target_id);
+                            }
                         }
                     }
-                }
 
-                // shortcuts
-                for (i, v_w_edge) in self.outgoing_edges[v].clone().iter().enumerate() {
-                    let w = v_w_edge.target_id;
-                    let current_cost = *cost.get(&w).unwrap_or(&u32::MAX);
-                    if current_cost > u_w_costs[i] {
-                        println!("added shortcut");
-                        let shortcut = Edge {
-                            source_id: u,
-                            target_id: w,
-                            cost: u_v_edge.cost + v_w_edge.cost,
-                        };
-                        self.outgoing_edges[u].push(shortcut.clone());
-                        self.incoming_edges[w].push(shortcut);
+                    // shortcuts
+                    for (i, v_w_edge) in self.outgoing_edges[v].clone().iter().enumerate() {
+                        let w = v_w_edge.target_id;
+                        let current_cost = *cost.get(&w).unwrap_or(&u32::MAX);
+                        if current_cost > u_w_costs[i] {
+                            let shortcut = Edge {
+                                source_id: u,
+                                target_id: w,
+                                cost: u_v_edge.cost + v_w_edge.cost,
+                            };
+                            self.outgoing_edges[u].push(shortcut.clone());
+                            self.incoming_edges[w].push(shortcut);
+                        }
                     }
                 }
             }
@@ -138,6 +139,7 @@ impl SimpleGraph {
 
                 Node {
                     id,
+                    level: 0,
                     latitude,
                     longitude,
                 }
