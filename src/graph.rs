@@ -1,25 +1,11 @@
+use crate::graph::*;
 use indicatif::ProgressBar;
 use std::fs::File;
 use std::io::{self, BufRead};
 const SKIP_LINES: usize = 5;
 
 #[derive(Clone)]
-pub struct Edge {
-    pub source_id: usize,
-    pub target_id: usize,
-    pub cost: u32,
-}
-
-#[derive(Clone)]
-pub struct Node {
-    pub id: usize,
-    //pub id2: usize,
-    pub longitude: f32,
-    pub latitude: f32,
-}
-
-#[derive(Clone)]
-pub struct Graph {
+pub struct SimpleGraph {
     pub nodes: Vec<Node>,
     pub edges: Vec<Edge>,
     pub edges_start_at: Vec<usize>,
