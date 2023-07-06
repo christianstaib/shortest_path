@@ -1,12 +1,12 @@
 use indicatif::{ProgressBar, ProgressIterator};
-use rand::seq::SliceRandom;
-use rand::thread_rng;
+
+use std::cmp::Ordering;
+
 use std::collections::BinaryHeap;
 use std::fs::File;
 use std::io::{self, BufRead};
 
 use crate::binary_heap::State;
-use crate::queue::BucketQueue;
 use std::collections::HashMap;
 const SKIP_LINES: usize = 5;
 
@@ -38,84 +38,73 @@ impl SimpleGraph {
         let outgoing_edges = self.outgoing_edges.clone();
         let incoming_edges = self.incoming_edges.clone();
 
-        let mut nodes = self.nodes.clone();
-        nodes.sort_by(|a, b| (a.level).cmp(&b.level));
-
         let mut shortcuts: Vec<SimpleEdge> = Vec::new();
-        let mut order: Vec<usize> = (0..self.nodes.len()).collect();
-        //order.shuffle(&mut thread_rng());
-        let order = order.iter();
 
-        for (level, &v) in order.enumerate().progress() {
-            //println!("{}", self.nodes[v].level);
-            //println!();
-            //println!("contracting {v}");
-            self.nodes[v].level = level;
+        let bar = ProgressBar::new(self.nodes.len() as u64);
+        let mut level = 0;
 
-            for uv_edge in &self.incoming_edges[v].clone() {
-                let max_uvw_cost = uv_edge.cost
-                    + &self.outgoing_edges[v]
-                        .iter()
-                        .map(|edge| edge.cost)
-                        .max()
-                        .unwrap_or(0);
-                let cost = self.cost_from_to_without(uv_edge, max_uvw_cost);
-                for vw_edge in &self.outgoing_edges[v].clone() {
-                    let uvw_cost = uv_edge.cost + vw_edge.cost;
-                    let w = vw_edge.target_id;
-                    if &uvw_cost < cost.get(&w).unwrap_or(&u32::MAX) {
-                        let u = uv_edge.source_id;
+        let mut queue = BinaryHeap::new();
+
+        println!("initializing queue");
+        for v in (0..self.nodes.len()).progress() {
+            queue.push(CHState {
+                cost: self.edge_difference(v),
+                position: v,
+            });
+        }
+
+        println!("start contracting node");
+        loop {
+            if let Some(state) = queue.pop() {
+                let v = state.position;
+                if self.edge_difference(v) > state.cost {
+                    queue.push(CHState {
+                        cost: self.edge_difference(v),
+                        position: v,
+                    });
+                    continue;
+                }
+
+                bar.inc(1);
+                self.nodes[v].level = level;
+
+                for uv_edge in &self.incoming_edges[v].clone() {
+                    let max_uvw_cost = uv_edge.cost
+                        + &self.outgoing_edges[v]
+                            .iter()
+                            .map(|edge| edge.cost)
+                            .max()
+                            .unwrap_or(0);
+                    let cost = self.cost_from_to_without(uv_edge, max_uvw_cost);
+                    for vw_edge in &self.outgoing_edges[v].clone() {
+                        let uvw_cost = uv_edge.cost + vw_edge.cost;
                         let w = vw_edge.target_id;
+                        if &uvw_cost < cost.get(&w).unwrap_or(&u32::MAX) {
+                            let u = uv_edge.source_id;
+                            let w = vw_edge.target_id;
 
-                        let shortcut = SimpleEdge {
-                            source_id: u,
-                            target_id: w,
-                            cost: uv_edge.cost + vw_edge.cost,
-                        };
-                        //println!(
-                        //    "adding shortcut {:>3} -> {:>3} : {:>3}",
-                        //    shortcut.source_id, shortcut.target_id, shortcut.cost
-                        //);
-                        self.outgoing_edges[u].push(shortcut.clone());
-                        self.incoming_edges[w].push(shortcut.clone());
-                        shortcuts.push(shortcut.clone());
-
-                        //let min_cost = self.outgoing_edges[u]
-                        //    .iter()
-                        //    .filter(|edge| (edge.source_id == u) & (edge.target_id == w))
-                        //    .map(|edge| edge.cost)
-                        //    .min()
-                        //    .unwrap();
-
-                        //self.outgoing_edges[u].retain(|edge| {
-                        //    !((edge.source_id == u)
-                        //        & (edge.target_id == w)
-                        //        & (edge.cost < min_cost))
-                        //});
-                        //self.incoming_edges[w].retain(|edge| {
-                        //    !((edge.source_id == u)
-                        //        & (edge.target_id == w)
-                        //        & (edge.cost < min_cost))
-                        //});
-                        //shortcuts.retain(|edge| {
-                        //    !((edge.source_id == u)
-                        //        & (edge.target_id == w)
-                        //        & (edge.cost < min_cost))
-                        //});
+                            let shortcut = SimpleEdge {
+                                source_id: u,
+                                target_id: w,
+                                cost: uv_edge.cost + vw_edge.cost,
+                            };
+                            self.outgoing_edges[u].push(shortcut.clone());
+                            self.incoming_edges[w].push(shortcut.clone());
+                            shortcuts.push(shortcut.clone());
+                        }
                     }
                 }
+                self.disconnect(v);
+                level += 1;
+            } else {
+                break;
             }
-
-            self.disconnect(v);
         }
+        bar.finish();
 
         self.outgoing_edges = outgoing_edges;
         self.incoming_edges = incoming_edges;
         for shortcut in shortcuts {
-            //println!(
-            //    "{:>3} -> {:>3} : {:>3}",
-            //    shortcut.source_id, shortcut.target_id, shortcut.cost
-            //);
             self.outgoing_edges[shortcut.source_id].push(shortcut.clone());
             self.incoming_edges[shortcut.target_id].push(shortcut.clone());
         }
@@ -123,18 +112,10 @@ impl SimpleGraph {
 
     pub fn disconnect(&mut self, node_id: usize) {
         while let Some(incoming_edge) = self.incoming_edges[node_id].pop() {
-            //println!(
-            //    "removing {:>3} -> {:>3} : {:>3}",
-            //    incoming_edge.source_id, incoming_edge.target_id, incoming_edge.cost
-            //);
             self.outgoing_edges[incoming_edge.source_id]
                 .retain(|outgoing_edge| outgoing_edge.target_id != node_id);
         }
         while let Some(outgoing_edge) = self.outgoing_edges[node_id].pop() {
-            //println!(
-            //    "removing {:>3} -> {:>3} : {:>3}",
-            //    outgoing_edge.source_id, outgoing_edge.target_id, outgoing_edge.cost
-            //);
             self.incoming_edges[outgoing_edge.target_id]
                 .retain(|incoming_edge| incoming_edge.source_id != node_id);
         }
@@ -173,7 +154,29 @@ impl SimpleGraph {
         }
 
         cost
-        //&uvw_cost < cost.get(&w).unwrap_or(&u32::MAX)
+    }
+
+    pub fn edge_difference(&self, v: usize) -> i32 {
+        let mut edge_difference: i32 =
+            -((&self.incoming_edges[v].len() + &self.outgoing_edges[v].len()) as i32);
+        for uv_edge in &self.incoming_edges[v].clone() {
+            let max_uvw_cost = uv_edge.cost
+                + &self.outgoing_edges[v]
+                    .iter()
+                    .map(|edge| edge.cost)
+                    .max()
+                    .unwrap_or(0);
+            let cost = self.cost_from_to_without(uv_edge, max_uvw_cost);
+            for vw_edge in &self.outgoing_edges[v].clone() {
+                let uvw_cost = uv_edge.cost + vw_edge.cost;
+                let w = vw_edge.target_id;
+                if &uvw_cost < cost.get(&w).unwrap_or(&u32::MAX) {
+                    edge_difference += 1;
+                }
+            }
+        }
+
+        edge_difference
     }
 
     pub fn from_file(filename: &str) -> SimpleGraph {
@@ -263,5 +266,33 @@ impl SimpleGraph {
         bar.finish();
 
         (nodes, edges)
+    }
+}
+
+#[derive(Copy, Clone, Eq, PartialEq)]
+struct CHState {
+    cost: i32,
+    position: usize,
+}
+
+// The priority queue depends on `Ord`.
+// Explicitly implement the trait so the queue becomes a min-heap
+// instead of a max-heap.
+impl Ord for CHState {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Notice that the we flip the ordering on costs.
+        // In case of a tie we compare positions - this step is necessary
+        // to make implementations of `PartialEq` and `Ord` consistent.
+        other
+            .cost
+            .cmp(&self.cost)
+            .then_with(|| self.position.cmp(&other.position))
+    }
+}
+
+// `PartialOrd` needs to be implemented as well.
+impl PartialOrd for CHState {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }

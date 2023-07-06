@@ -30,26 +30,24 @@ impl ChDijsktra {
         });
         backward_cost[end_node_id] = 0;
 
-        let mut expanded_nodes = 0;
         loop {
             // forward
             if let Some(state) = forward_queue.pop() {
-                expanded_nodes += 1;
                 let current_node_id = state.position;
                 if current_node_id == end_node_id {
                     break;
                 }
                 let current_level = self.graph.nodes[current_node_id].level;
 
-                for outgoing_edge in &self.graph.outgoing_edges[current_node_id] {
-                    let next_level = self.graph.nodes[outgoing_edge.target_id].level;
-                    let alternative_cost = forward_cost[current_node_id] + outgoing_edge.cost;
-                    let current_cost = forward_cost[outgoing_edge.target_id];
+                for edge in &self.graph.outgoing_edges[current_node_id] {
+                    let next_level = self.graph.nodes[edge.target_id].level;
+                    let alternative_cost = forward_cost[current_node_id] + edge.cost;
+                    let current_cost = forward_cost[edge.target_id];
                     if (next_level >= current_level) & (alternative_cost < current_cost) {
-                        forward_cost[outgoing_edge.target_id] = alternative_cost;
+                        forward_cost[edge.target_id] = alternative_cost;
                         forward_queue.push(State {
                             cost: alternative_cost as usize,
-                            position: outgoing_edge.target_id,
+                            position: edge.target_id,
                         });
                     }
                 }
@@ -57,7 +55,6 @@ impl ChDijsktra {
 
             // backward
             if let Some(state) = backward_queue.pop() {
-                expanded_nodes += 1;
                 let current_node_id = state.position;
                 if current_node_id == start_node_id {
                     break;
@@ -83,7 +80,6 @@ impl ChDijsktra {
             }
         }
 
-        println!("expanded nodes: {}", expanded_nodes);
         let mut cost = u32::MAX;
         for i in 0..self.graph.nodes.len() {
             if (forward_cost[i] != u32::MAX) & (backward_cost[i] != u32::MAX) {
