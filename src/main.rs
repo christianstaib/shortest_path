@@ -21,6 +21,7 @@ use crate::{ch_dijkstra::ChDijsktra, simple_graph::SimpleGraph};
 //use crate::tests::*;
 
 const GRAPH_FILE: &str = "data/stgtregbz.fmi";
+//const GRAPH_FILE: &str = "data/good_example.fmi";
 //const SOLL_FILE: &str = "benchs/germany2.sol";
 //const QUEUE_FILE: &str = "benchs/germany2.que";
 

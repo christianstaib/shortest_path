@@ -1,4 +1,6 @@
 use indicatif::{ProgressBar, ProgressIterator};
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 use std::collections::BinaryHeap;
 use std::fs::File;
 use std::io::{self, BufRead};
@@ -37,25 +39,33 @@ impl SimpleGraph {
         let incoming_edges = self.incoming_edges.clone();
 
         let mut shortcuts: Vec<SimpleEdge> = Vec::new();
-        let order = 0..self.nodes.len();
+        let mut order: Vec<usize> = (0..self.nodes.len()).collect();
+        order.shuffle(&mut thread_rng());
+        let order = order.iter();
 
-        for (level, v) in order.enumerate().progress() {
+        for (level, &v) in order.enumerate().progress() {
+            //println!();
+            //println!("contracting {v}");
             self.nodes[v].level = level;
 
             for uv_edge in &self.incoming_edges[v].clone() {
                 for vw_edge in &self.outgoing_edges[v].clone() {
-                    let u = uv_edge.source_id;
-                    let w = vw_edge.target_id;
-
                     if self.is_unique_shortest_path(uv_edge, vw_edge) {
-                        let shotcut = SimpleEdge {
+                        let u = uv_edge.source_id;
+                        let w = vw_edge.target_id;
+
+                        let shortcut = SimpleEdge {
                             source_id: u,
                             target_id: w,
                             cost: uv_edge.cost + vw_edge.cost,
                         };
-                        self.outgoing_edges[u].push(shotcut.clone());
-                        self.incoming_edges[w].push(shotcut.clone());
-                        shortcuts.push(shotcut.clone());
+                        //println!(
+                        //    "adding shortcut {:>3} -> {:>3} : {:>3}",
+                        //    shortcut.source_id, shortcut.target_id, shortcut.cost
+                        //);
+                        self.outgoing_edges[u].push(shortcut.clone());
+                        self.incoming_edges[w].push(shortcut.clone());
+                        shortcuts.push(shortcut.clone());
                     }
                 }
             }
@@ -66,6 +76,10 @@ impl SimpleGraph {
         self.outgoing_edges = outgoing_edges;
         self.incoming_edges = incoming_edges;
         for shortcut in shortcuts {
+            //println!(
+            //    "{:>3} -> {:>3} : {:>3}",
+            //    shortcut.source_id, shortcut.target_id, shortcut.cost
+            //);
             self.outgoing_edges[shortcut.source_id].push(shortcut.clone());
             self.incoming_edges[shortcut.target_id].push(shortcut.clone());
         }
@@ -73,12 +87,20 @@ impl SimpleGraph {
 
     pub fn disconnect(&mut self, node_id: usize) {
         while let Some(incoming_edge) = self.incoming_edges[node_id].pop() {
+            //println!(
+            //    "removing {:>3} -> {:>3} : {:>3}",
+            //    incoming_edge.source_id, incoming_edge.target_id, incoming_edge.cost
+            //);
             self.outgoing_edges[incoming_edge.source_id]
-                .retain(|outgoing_edge| outgoing_edge.target_id == node_id);
+                .retain(|outgoing_edge| outgoing_edge.target_id != node_id);
         }
         while let Some(outgoing_edge) = self.outgoing_edges[node_id].pop() {
+            //println!(
+            //    "removing {:>3} -> {:>3} : {:>3}",
+            //    outgoing_edge.source_id, outgoing_edge.target_id, outgoing_edge.cost
+            //);
             self.incoming_edges[outgoing_edge.target_id]
-                .retain(|incoming_edge| incoming_edge.source_id == node_id);
+                .retain(|incoming_edge| incoming_edge.source_id != node_id);
         }
     }
 
