@@ -8,6 +8,7 @@
 //mod investigation;
 //mod landmark_heuristic;
 //mod node_map;
+mod binary_heap;
 mod queue;
 //mod route;
 mod simple_graph;
@@ -18,15 +19,22 @@ use crate::simple_graph::SimpleGraph;
 //use crate::graph::*;
 //use crate::tests::*;
 
-const GRAPH_FILE: &str = "data/toy.fmi";
+const GRAPH_FILE: &str = "data/germany.fmi";
 const SOLL_FILE: &str = "benchs/germany2.sol";
 const QUEUE_FILE: &str = "benchs/germany2.que";
 
 fn main() {
     //let start = Instant::now();
     let mut graph = SimpleGraph::from_file(GRAPH_FILE);
+    //for edges in &graph.outgoing_edges {
+    //    for edge in edges {
+    //        println!("{} -> {}: {}", edge.source_id, edge.target_id, edge.cost);
+    //    }
+    //}
+
+    println!("");
     graph.contract();
-    for edges in graph.outgoing_edges {
+    for edges in &graph.outgoing_edges {
         for edge in edges {
             println!("{} -> {}: {}", edge.source_id, edge.target_id, edge.cost);
         }
