@@ -1,6 +1,7 @@
 //use std::time::Duration;
-//use std::time::Instant;
+use std::time::Instant;
 //
+mod ch_dijkstra;
 //mod a_star;
 //mod bi_dijkstra;
 //mod dijkstra;
@@ -13,32 +14,27 @@ mod queue;
 //mod route;
 mod simple_graph;
 //mod tests;
-use crate::simple_graph::SimpleGraph;
+use crate::{ch_dijkstra::ChDijsktra, simple_graph::SimpleGraph};
 //use crate::bi_dijkstra::BiDijkstra;
 //use crate::dijkstra::Dijkstra;
 //use crate::graph::*;
 //use crate::tests::*;
 
-const GRAPH_FILE: &str = "data/germany.fmi";
-const SOLL_FILE: &str = "benchs/germany2.sol";
-const QUEUE_FILE: &str = "benchs/germany2.que";
+const GRAPH_FILE: &str = "data/stgtregbz.fmi";
+//const SOLL_FILE: &str = "benchs/germany2.sol";
+//const QUEUE_FILE: &str = "benchs/germany2.que";
 
 fn main() {
     //let start = Instant::now();
     let mut graph = SimpleGraph::from_file(GRAPH_FILE);
-    //for edges in &graph.outgoing_edges {
-    //    for edge in edges {
-    //        println!("{} -> {}: {}", edge.source_id, edge.target_id, edge.cost);
-    //    }
-    //}
 
-    println!("");
+    //println!("");
+    let start = Instant::now();
     graph.contract();
-    for edges in &graph.outgoing_edges {
-        for edge in edges {
-            println!("{} -> {}: {}", edge.source_id, edge.target_id, edge.cost);
-        }
-    }
+    println!("contracting took {:.2}s", start.elapsed().as_secs_f32());
+    let dijskstra = ChDijsktra::new(graph);
+    let cost = dijskstra.single_pair_shortest_path(649, 55750);
+    println!("cost is {}", cost);
     //println!("loading file took {}s", start.elapsed().as_secs_f32());
 
     //let dijkstra = BiDijkstra::new(graph);

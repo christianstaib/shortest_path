@@ -1,10 +1,9 @@
 use std::cmp::Ordering;
-use std::collections::BinaryHeap;
 
 #[derive(Copy, Clone, Eq, PartialEq)]
-struct State {
-    cost: usize,
-    position: usize,
+pub struct State {
+    pub cost: usize,
+    pub position: usize,
 }
 
 // The priority queue depends on `Ord`.

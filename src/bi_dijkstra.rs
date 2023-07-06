@@ -4,8 +4,6 @@ use crate::queue::*;
 
 pub struct BiDijkstra {
     pub graph: Graph,
-    pub inverted_graph: Graph,
-    forward_heuristic: LandmarkHeuristic,
     backward_heurisitc: LandmarkHeuristic,
     pub max_edge_cost: usize,
 }

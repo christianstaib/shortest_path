@@ -3,6 +3,7 @@ use std::collections::BinaryHeap;
 use std::fs::File;
 use std::io::{self, BufRead};
 
+use crate::binary_heap::State;
 use crate::queue::BucketQueue;
 use std::collections::HashMap;
 const SKIP_LINES: usize = 5;
@@ -40,10 +41,12 @@ impl SimpleGraph {
 
         for (level, v) in order.enumerate().progress() {
             self.nodes[v].level = level;
+
             for uv_edge in &self.incoming_edges[v].clone() {
-                let u = uv_edge.source_id;
                 for vw_edge in &self.outgoing_edges[v].clone() {
+                    let u = uv_edge.source_id;
                     let w = vw_edge.target_id;
+
                     if self.is_unique_shortest_path(uv_edge, vw_edge) {
                         let shotcut = SimpleEdge {
                             source_id: u,
@@ -56,6 +59,7 @@ impl SimpleGraph {
                     }
                 }
             }
+
             self.disconnect(v);
         }
 
@@ -78,18 +82,23 @@ impl SimpleGraph {
         }
     }
 
-    /// Return true if u->v->w is the unique shortest path between
+    /// Return true if u->v->w is the unique shortest path between u and w
     pub fn is_unique_shortest_path(&self, uv_edge: &SimpleEdge, vw_edge: &SimpleEdge) -> bool {
         let u = uv_edge.source_id;
         let v = vw_edge.source_id;
         let w = vw_edge.target_id;
+
         let uvw_cost = uv_edge.cost + vw_edge.cost;
 
-        let mut queue = BucketQueue::new(10_000);
+        let mut queue = BinaryHeap::new();
         let mut cost: HashMap<usize, u32> = HashMap::new();
-        queue.push(0, u);
+        queue.push(State {
+            cost: 0,
+            position: u,
+        });
         cost.insert(u, 0);
-        while let Some(current_node_id) = queue.pop() {
+        while let Some(state) = queue.pop() {
+            let current_node_id = state.position;
             if cost[&current_node_id] >= uvw_cost {
                 break;
             }
@@ -99,7 +108,10 @@ impl SimpleGraph {
                     let current_cost = *cost.get(&edge.target_id).unwrap_or(&u32::MAX);
                     if alternative_cost < current_cost {
                         cost.insert(edge.target_id, alternative_cost);
-                        queue.push(alternative_cost as usize, edge.target_id);
+                        queue.push(State {
+                            cost: alternative_cost as usize,
+                            position: edge.target_id,
+                        });
                     }
                 }
             }
@@ -120,7 +132,6 @@ impl SimpleGraph {
             edges_outgoing[edge.source_id].push(edge.clone());
             edges_incoming[edge.target_id].push(edge.clone());
         }
-        let number_of_nodes = nodes.len();
 
         let graph = SimpleGraph {
             nodes,
@@ -157,6 +168,7 @@ impl SimpleGraph {
                 let latitude: f32 = values.next().unwrap().parse().unwrap();
                 let longitude: f32 = values.next().unwrap().parse().unwrap();
                 let _elevation: f32 = values.next().unwrap().parse().unwrap();
+                //let level: usize = values.next().unwrap().parse().unwrap();
 
                 SimpleNode {
                     id,
@@ -181,8 +193,8 @@ impl SimpleGraph {
                 let source_id: usize = values.next().unwrap().parse().unwrap();
                 let target_id: usize = values.next().unwrap().parse().unwrap();
                 let cost: u32 = values.next().unwrap().parse().unwrap();
-                let _type: u32 = values.next().unwrap().parse().unwrap();
-                let _maxspeed: usize = values.next().unwrap().parse().unwrap();
+                //let _type: u32 = values.next().unwrap().parse().unwrap();
+                //let _maxspeed: usize = values.next().unwrap().parse().unwrap();
 
                 SimpleEdge {
                     source_id,
