@@ -38,19 +38,32 @@ impl SimpleGraph {
         let outgoing_edges = self.outgoing_edges.clone();
         let incoming_edges = self.incoming_edges.clone();
 
+        let mut nodes = self.nodes.clone();
+        nodes.sort_by(|a, b| (a.level).cmp(&b.level));
+
         let mut shortcuts: Vec<SimpleEdge> = Vec::new();
         let mut order: Vec<usize> = (0..self.nodes.len()).collect();
-        order.shuffle(&mut thread_rng());
+        //order.shuffle(&mut thread_rng());
         let order = order.iter();
 
         for (level, &v) in order.enumerate().progress() {
+            //println!("{}", self.nodes[v].level);
             //println!();
             //println!("contracting {v}");
             self.nodes[v].level = level;
 
             for uv_edge in &self.incoming_edges[v].clone() {
+                let max_uvw_cost = uv_edge.cost
+                    + &self.outgoing_edges[v]
+                        .iter()
+                        .map(|edge| edge.cost)
+                        .max()
+                        .unwrap_or(0);
+                let cost = self.cost_from_to_without(uv_edge, max_uvw_cost);
                 for vw_edge in &self.outgoing_edges[v].clone() {
-                    if self.is_unique_shortest_path(uv_edge, vw_edge) {
+                    let uvw_cost = uv_edge.cost + vw_edge.cost;
+                    let w = vw_edge.target_id;
+                    if &uvw_cost < cost.get(&w).unwrap_or(&u32::MAX) {
                         let u = uv_edge.source_id;
                         let w = vw_edge.target_id;
 
@@ -66,6 +79,29 @@ impl SimpleGraph {
                         self.outgoing_edges[u].push(shortcut.clone());
                         self.incoming_edges[w].push(shortcut.clone());
                         shortcuts.push(shortcut.clone());
+
+                        //let min_cost = self.outgoing_edges[u]
+                        //    .iter()
+                        //    .filter(|edge| (edge.source_id == u) & (edge.target_id == w))
+                        //    .map(|edge| edge.cost)
+                        //    .min()
+                        //    .unwrap();
+
+                        //self.outgoing_edges[u].retain(|edge| {
+                        //    !((edge.source_id == u)
+                        //        & (edge.target_id == w)
+                        //        & (edge.cost < min_cost))
+                        //});
+                        //self.incoming_edges[w].retain(|edge| {
+                        //    !((edge.source_id == u)
+                        //        & (edge.target_id == w)
+                        //        & (edge.cost < min_cost))
+                        //});
+                        //shortcuts.retain(|edge| {
+                        //    !((edge.source_id == u)
+                        //        & (edge.target_id == w)
+                        //        & (edge.cost < min_cost))
+                        //});
                     }
                 }
             }
@@ -105,12 +141,9 @@ impl SimpleGraph {
     }
 
     /// Return true if u->v->w is the unique shortest path between u and w
-    pub fn is_unique_shortest_path(&self, uv_edge: &SimpleEdge, vw_edge: &SimpleEdge) -> bool {
+    pub fn cost_from_to_without(&self, uv_edge: &SimpleEdge, max_cost: u32) -> HashMap<usize, u32> {
         let u = uv_edge.source_id;
-        let v = vw_edge.source_id;
-        let w = vw_edge.target_id;
-
-        let uvw_cost = uv_edge.cost + vw_edge.cost;
+        let v = uv_edge.target_id;
 
         let mut queue = BinaryHeap::new();
         let mut cost: HashMap<usize, u32> = HashMap::new();
@@ -121,7 +154,7 @@ impl SimpleGraph {
         cost.insert(u, 0);
         while let Some(state) = queue.pop() {
             let current_node_id = state.position;
-            if cost[&current_node_id] >= uvw_cost {
+            if cost[&current_node_id] >= max_cost {
                 break;
             }
             for edge in &self.outgoing_edges[current_node_id] {
@@ -139,7 +172,8 @@ impl SimpleGraph {
             }
         }
 
-        &uvw_cost < cost.get(&w).unwrap_or(&u32::MAX)
+        cost
+        //&uvw_cost < cost.get(&w).unwrap_or(&u32::MAX)
     }
 
     pub fn from_file(filename: &str) -> SimpleGraph {
