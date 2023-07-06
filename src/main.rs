@@ -1,35 +1,24 @@
 use std::time::Duration;
 use std::time::Instant;
-//
-mod ch_dijkstra;
-//mod a_star;
-//mod bi_dijkstra;
-//mod dijkstra;
-//mod graph;
-//mod investigation;
-//mod landmark_heuristic;
-//mod node_map;
+
 mod binary_heap;
+mod ch_dijkstra;
 mod queue;
-//mod route;
 mod simple_graph;
 mod tests;
-use crate::{ch_dijkstra::ChDijsktra, simple_graph::SimpleGraph};
-//use crate::bi_dijkstra::BiDijkstra;
-//use crate::dijkstra::Dijkstra;
-//use crate::graph::*;
+use crate::ch_dijkstra::ChDijsktra;
+use crate::simple_graph::SimpleGraph;
 use crate::tests::*;
 
 const GRAPH_FILE: &str = "data/germany.fmi";
-//const GRAPH_FILE: &str = "data/good_example.fmi";
 const SOLL_FILE: &str = "benchs/germany2.sol";
 const QUEUE_FILE: &str = "benchs/germany2.que";
 
 fn main() {
-    //let start = Instant::now();
+    let start = Instant::now();
     let mut graph = SimpleGraph::from_file(GRAPH_FILE);
+    println!("loading took {:.2}s", start.elapsed().as_secs_f32());
 
-    //println!("");
     let start = Instant::now();
     graph.contract();
     println!("contracting took {:.2}s", start.elapsed().as_secs_f32());

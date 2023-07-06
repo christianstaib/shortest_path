@@ -21,7 +21,6 @@ pub struct SimpleEdge {
 pub struct SimpleNode {
     pub id: usize,
     pub level: usize,
-    //pub id2: usize,
     pub longitude: f32,
     pub latitude: f32,
 }
