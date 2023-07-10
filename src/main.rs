@@ -10,9 +10,9 @@ use crate::ch_dijkstra::ChDijsktra;
 use crate::simple_graph::SimpleGraph;
 use crate::tests::*;
 
-const GRAPH_FILE: &str = "data/germany.fmi";
-const SOLL_FILE: &str = "benchs/germany2.sol";
-const QUEUE_FILE: &str = "benchs/germany2.que";
+const GRAPH_FILE: &str = "data/stgtregbz.fmi";
+const SOLL_FILE: &str = "benchs/stgtregbz.sol";
+const QUEUE_FILE: &str = "benchs/stgtregbz.que";
 
 fn main() {
     let start = Instant::now();
@@ -22,7 +22,7 @@ fn main() {
     let start = Instant::now();
     graph.contract();
     println!("contracting took {:.2}s", start.elapsed().as_secs_f32());
-    let dijskstra = ChDijsktra::new(graph);
+    let mut dijskstra = ChDijsktra::new(graph);
 
     let mut times: Vec<Duration> = Vec::new();
     let test_cases = get_test_cases(QUEUE_FILE, SOLL_FILE);
