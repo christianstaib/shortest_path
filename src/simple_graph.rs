@@ -143,29 +143,38 @@ impl SimpleGraph {
 
     fn removing_double_edges(&mut self) {
         println!("removing double nodes");
+
         let num_edges = self.incoming_edges.iter().flatten().count();
-        let mut edge_map = HashMap::new();
-        for edges in &self.incoming_edges {
-            for edge in edges {
+        for i in (0..self.incoming_edges.len()).progress() {
+            let mut edge_map = HashMap::new();
+            for edge in &self.incoming_edges[i] {
                 let edge_tuple = (edge.source_id, edge.target_id);
                 let current_cost = edge_map.get(&edge_tuple).unwrap_or(&u32::MAX);
                 if &edge.cost < current_cost {
                     edge_map.insert(edge_tuple, edge.cost);
                 }
             }
+            self.incoming_edges[i].retain(|edge| {
+                edge.cost <= *edge_map.get(&(edge.source_id, edge.target_id)).unwrap()
+            });
         }
+        let new_num_edges = self.incoming_edges.iter().flatten().count();
+        println!("removed {} edges", num_edges - new_num_edges);
 
-        self.incoming_edges.iter_mut().for_each(|edges| {
-            edges.retain(|edge| {
+        let num_edges = self.incoming_edges.iter().flatten().count();
+        for i in (0..self.outgoing_edges.len()).progress() {
+            let mut edge_map = HashMap::new();
+            for edge in &self.outgoing_edges[i] {
+                let edge_tuple = (edge.source_id, edge.target_id);
+                let current_cost = edge_map.get(&edge_tuple).unwrap_or(&u32::MAX);
+                if &edge.cost < current_cost {
+                    edge_map.insert(edge_tuple, edge.cost);
+                }
+            }
+            self.outgoing_edges[i].retain(|edge| {
                 edge.cost <= *edge_map.get(&(edge.source_id, edge.target_id)).unwrap()
             });
-        });
-        self.outgoing_edges.iter_mut().for_each(|edges| {
-            edges.retain(|edge| {
-                edge.cost <= *edge_map.get(&(edge.source_id, edge.target_id)).unwrap()
-            });
-        });
-
+        }
         let new_num_edges = self.incoming_edges.iter().flatten().count();
         println!("removed {} edges", num_edges - new_num_edges);
     }
