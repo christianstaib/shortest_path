@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, BinaryHeap, HashMap};
+use std::collections::{BinaryHeap, HashMap, HashSet};
 
 use crate::{binary_heap::State, simple_graph::SimpleGraph};
 
@@ -17,8 +17,8 @@ impl ChDijsktra {
         let mut forward_queue = BinaryHeap::new();
         let mut backward_queue = BinaryHeap::new();
 
-        let mut forward_closed = BTreeSet::new();
-        let mut backward_closed = BTreeSet::new();
+        let mut forward_closed = HashSet::new();
+        let mut backward_closed = HashSet::new();
 
         let mut forward_cost = HashMap::new();
         let mut backward_cost = HashMap::new();
@@ -41,10 +41,11 @@ impl ChDijsktra {
                 let current_node_id = state.position;
                 forward_closed.insert(current_node_id);
                 if backward_closed.contains(&current_node_id) {
-                    cost = cost.min(
-                        forward_cost.get(&current_node_id).unwrap()
-                            + backward_cost.get(&current_node_id).unwrap(),
-                    );
+                    let new_cost = forward_cost.get(&current_node_id).unwrap()
+                        + backward_cost.get(&current_node_id).unwrap();
+                    if new_cost < cost {
+                        cost = new_cost;
+                    }
                 }
 
                 for edge in &self.graph.outgoing_edges[current_node_id as usize] {
@@ -65,10 +66,11 @@ impl ChDijsktra {
                 let current_node_id = state.position;
                 backward_closed.insert(current_node_id);
                 if forward_closed.contains(&current_node_id) {
-                    cost = cost.min(
-                        forward_cost.get(&current_node_id).unwrap()
-                            + backward_cost.get(&current_node_id).unwrap(),
-                    );
+                    let new_cost = forward_cost.get(&current_node_id).unwrap()
+                        + backward_cost.get(&current_node_id).unwrap();
+                    if new_cost < cost {
+                        cost = new_cost;
+                    }
                 }
 
                 for edge in &self.graph.incoming_edges[current_node_id as usize] {

@@ -241,6 +241,7 @@ impl Contractor {
             .iter()
             .filter(|edge| self.graph.outgoing_edges[edge.target as usize].len() > 0)
             .count() as i32;
+        //println!("{} {}", edge_difference, deleted_neighbours);
 
         edge_difference + deleted_neighbours
     }

@@ -37,11 +37,11 @@ fn main() {
         times.push(end_main);
 
         println!(
-            "{:>9} -> {:>9} diff: {:>9}, time: {:2.2?}s",
+            "{:>9} -> {:>9} diff: {:>9}, time: {:.2?}",
             test.source,
             test.target,
             cost as i32 - test.cost,
-            end_main.as_secs_f32(),
+            end_main,
         );
     }
     let times: Vec<Duration> = times
