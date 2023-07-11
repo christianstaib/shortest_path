@@ -3,23 +3,28 @@ use std::time::Instant;
 
 mod binary_heap;
 mod ch_dijkstra;
+mod ch_queue;
+mod contrator;
 mod simple_graph;
 mod tests;
 use crate::ch_dijkstra::ChDijsktra;
+use crate::contrator::Contractor;
 use crate::simple_graph::SimpleGraph;
 use crate::tests::*;
 
-const GRAPH_FILE: &str = "data/germany.fmi";
-const SOLL_FILE: &str = "benchs/germany2.sol";
-const QUEUE_FILE: &str = "benchs/germany2.que";
+const GRAPH_FILE: &str = "data/stgtregbz.fmi";
+const SOLL_FILE: &str = "benchs/stgtregbz.sol";
+const QUEUE_FILE: &str = "benchs/stgtregbz.que";
 
 fn main() {
     let start = Instant::now();
-    let mut graph = SimpleGraph::from_file(GRAPH_FILE);
+    let graph = SimpleGraph::from_file(GRAPH_FILE);
     println!("loading took {:.2}s", start.elapsed().as_secs_f32());
 
     let start = Instant::now();
-    graph.contract();
+    let mut contractor = Contractor::new(graph);
+    contractor.contract();
+    let graph = contractor.graph;
     println!("contracting took {:.2}s", start.elapsed().as_secs_f32());
     let dijskstra = ChDijsktra::new(graph);
 

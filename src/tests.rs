@@ -3,8 +3,8 @@ use std::io::{BufRead, BufReader};
 
 #[derive(Clone)]
 pub struct TestRoute {
-    pub source: usize,
-    pub target: usize,
+    pub source: u32,
+    pub target: u32,
     pub cost: i32,
 }
 
@@ -42,8 +42,8 @@ pub fn get_test_cases(que_file: &str, sol_file: &str) -> Vec<TestRoute> {
         .iter()
         .zip(costs.iter())
         .map(|((from, to), cost)| TestRoute {
-            source: *from,
-            target: *to,
+            source: *from as u32,
+            target: *to as u32,
             cost: *cost,
         })
         .collect()

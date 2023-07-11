@@ -11,7 +11,7 @@ impl ChDijsktra {
         ChDijsktra { graph }
     }
 
-    pub fn single_pair_shortest_path(&self, start_node_id: usize, end_node_id: usize) -> u32 {
+    pub fn single_pair_shortest_path(&self, start_node_id: u32, end_node_id: u32) -> u32 {
         let mut cost = u32::MAX;
 
         let mut forward_queue = BinaryHeap::new();
@@ -47,14 +47,14 @@ impl ChDijsktra {
                     );
                 }
 
-                for edge in &self.graph.outgoing_edges[current_node_id] {
+                for edge in &self.graph.outgoing_edges[current_node_id as usize] {
                     let alternative_cost = forward_cost.get(&current_node_id).unwrap() + edge.cost;
-                    let current_cost = forward_cost.get(&edge.target_id).unwrap_or(&u32::MAX);
+                    let current_cost = forward_cost.get(&edge.target).unwrap_or(&u32::MAX);
                     if &alternative_cost < current_cost {
-                        forward_cost.insert(edge.target_id, alternative_cost);
+                        forward_cost.insert(edge.target, alternative_cost);
                         forward_queue.push(State {
-                            cost: alternative_cost as usize,
-                            position: edge.target_id,
+                            cost: alternative_cost,
+                            position: edge.target,
                         });
                     }
                 }
@@ -71,14 +71,14 @@ impl ChDijsktra {
                     );
                 }
 
-                for edge in &self.graph.incoming_edges[current_node_id] {
+                for edge in &self.graph.incoming_edges[current_node_id as usize] {
                     let alternative_cost = backward_cost.get(&current_node_id).unwrap() + edge.cost;
-                    let current_cost = backward_cost.get(&edge.source_id).unwrap_or(&u32::MAX);
+                    let current_cost = backward_cost.get(&edge.source).unwrap_or(&u32::MAX);
                     if &alternative_cost < current_cost {
-                        backward_cost.insert(edge.source_id, alternative_cost);
+                        backward_cost.insert(edge.source, alternative_cost);
                         backward_queue.push(State {
-                            cost: alternative_cost as usize,
-                            position: edge.source_id,
+                            cost: alternative_cost,
+                            position: edge.source,
                         });
                     }
                 }
