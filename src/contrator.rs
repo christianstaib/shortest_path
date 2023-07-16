@@ -12,11 +12,16 @@ use std::collections::HashMap;
 
 pub struct Contractor {
     pub graph: SimpleGraph,
+    cost_of_queries: Vec<u32>,
 }
 
 impl Contractor {
     pub fn new(graph: SimpleGraph) -> Self {
-        Contractor { graph }
+        let cost_of_queries = vec![0; graph.nodes.len()];
+        Contractor {
+            graph,
+            cost_of_queries,
+        }
     }
 
     pub fn contract(&mut self) {
@@ -85,6 +90,8 @@ impl Contractor {
             let costs = self.get_alternative_cost(uv_edge, max_uvw_cost);
             for vw_edge in uw_edges {
                 let w = vw_edge.target;
+                self.cost_of_queries[w as usize] =
+                    self.cost_of_queries[w as usize].max(self.cost_of_queries[v as usize] + 1);
                 let uvw_cost = uv_edge.cost + vw_edge.cost;
                 if &uvw_cost < costs.get(&w).unwrap_or(&u32::MAX) {
                     let shortcut = Edge {
@@ -243,6 +250,6 @@ impl Contractor {
             .count() as i32;
         //println!("{} {}", edge_difference, deleted_neighbours);
 
-        edge_difference + deleted_neighbours
+        edge_difference + deleted_neighbours + self.cost_of_queries[v as usize] as i32
     }
 }
