@@ -12,14 +12,16 @@ use crate::contrator::Contractor;
 use crate::simple_graph::SimpleGraph;
 use crate::tests::*;
 
-const GRAPH_FILE: &str = "data/stgtregbz.fmi";
-const SOLL_FILE: &str = "benchs/stgtregbz.sol";
-const QUEUE_FILE: &str = "benchs/stgtregbz.que";
+const GRAPH_FILE: &str = "data/toy.fmi";
+const SOLL_FILE: &str = "benchs/germany2.sol";
+const QUEUE_FILE: &str = "benchs/germany2.que";
 
 fn main() {
     let start = Instant::now();
     let graph = SimpleGraph::from_file(GRAPH_FILE);
     println!("loading took {:.2}s", start.elapsed().as_secs_f32());
+
+    graph.to_file("toy_test.fmi");
 
     let start = Instant::now();
     let mut contractor = Contractor::new(graph);

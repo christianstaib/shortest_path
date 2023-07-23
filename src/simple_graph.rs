@@ -1,6 +1,7 @@
 use indicatif::ProgressBar;
 
 use std::fs::File;
+use std::io::prelude::*;
 use std::io::{self, BufRead};
 
 const SKIP_LINES: usize = 5;
@@ -28,6 +29,48 @@ pub struct SimpleGraph {
 }
 
 impl SimpleGraph {
+    pub fn to_file(&self, filename: &str) {
+        let mut file = File::create(filename).expect("couldnt create file");
+        for _ in 0..SKIP_LINES {
+            file.write_all("\n".as_bytes()).unwrap();
+        }
+        file.write_all(self.nodes.len().to_string().as_bytes())
+            .unwrap();
+        file.write_all("\n".as_bytes()).unwrap();
+        let number_of_edges = self.outgoing_edges.iter().flatten().count();
+        file.write_all(number_of_edges.to_string().as_bytes())
+            .unwrap();
+        file.write_all("\n".as_bytes()).unwrap();
+        for node in &self.nodes {
+            file.write_all(node.id.to_string().as_bytes()).unwrap();
+            file.write_all(" ".as_bytes()).unwrap();
+            file.write_all(node.id.to_string().as_bytes()).unwrap();
+            file.write_all(" ".as_bytes()).unwrap();
+            file.write_all(node.latitude.to_string().as_bytes())
+                .unwrap();
+            file.write_all(" ".as_bytes()).unwrap();
+            file.write_all(node.longitude.to_string().as_bytes())
+                .unwrap();
+            file.write_all(" ".as_bytes()).unwrap();
+            file.write_all("0".as_bytes()).unwrap();
+            file.write_all("\n".as_bytes()).unwrap();
+        }
+        for edges in &self.outgoing_edges {
+            for edge in edges {
+                file.write_all(edge.source.to_string().as_bytes()).unwrap();
+                file.write_all(" ".as_bytes()).unwrap();
+                file.write_all(edge.target.to_string().as_bytes()).unwrap();
+                file.write_all(" ".as_bytes()).unwrap();
+                file.write_all(edge.cost.to_string().as_bytes()).unwrap();
+                file.write_all(" ".as_bytes()).unwrap();
+                file.write_all("3".as_bytes()).unwrap();
+                file.write_all(" ".as_bytes()).unwrap();
+                file.write_all("50".as_bytes()).unwrap();
+                file.write_all("\n".as_bytes()).unwrap();
+            }
+        }
+    }
+
     pub fn from_file(filename: &str) -> SimpleGraph {
         let nodes_and_edges = SimpleGraph::get_nodes_and_edges(filename);
 
