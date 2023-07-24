@@ -1,5 +1,6 @@
 use indicatif::ProgressBar;
 
+use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{self, BufRead};
@@ -28,47 +29,57 @@ pub struct SimpleGraph {
     pub incoming_edges: Vec<Vec<Edge>>,
 }
 
+impl fmt::Display for Node {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{} {} {} {} 0 {}",
+            self.id, self.id, self.latitude, self.longitude, self.level
+        )
+    }
+}
+
+impl fmt::Display for Edge {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} {} {} 3 50", self.source, self.target, self.cost)
+    }
+}
+
 impl SimpleGraph {
     pub fn to_file(&self, filename: &str) {
         let mut file = File::create(filename).expect("couldnt create file");
+
         for _ in 0..SKIP_LINES {
             file.write_all("\n".as_bytes()).unwrap();
         }
-        file.write_all(self.nodes.len().to_string().as_bytes())
-            .unwrap();
-        file.write_all("\n".as_bytes()).unwrap();
+
+        let number_of_nodes = self.nodes.len();
+        let mut number_of_nodes_str = number_of_nodes.to_string();
+        number_of_nodes_str.push('\n');
+        file.write_all(number_of_nodes_str.as_bytes()).unwrap();
+
         let number_of_edges = self.outgoing_edges.iter().flatten().count();
-        file.write_all(number_of_edges.to_string().as_bytes())
-            .unwrap();
-        file.write_all("\n".as_bytes()).unwrap();
+        let mut number_of_edges_str = number_of_edges.to_string();
+        number_of_edges_str.push('\n');
+        file.write_all(number_of_edges_str.as_bytes()).unwrap();
+
+        let bar = ProgressBar::new(number_of_nodes as u64 + number_of_edges as u64);
         for node in &self.nodes {
-            file.write_all(node.id.to_string().as_bytes()).unwrap();
-            file.write_all(" ".as_bytes()).unwrap();
-            file.write_all(node.id.to_string().as_bytes()).unwrap();
-            file.write_all(" ".as_bytes()).unwrap();
-            file.write_all(node.latitude.to_string().as_bytes())
-                .unwrap();
-            file.write_all(" ".as_bytes()).unwrap();
-            file.write_all(node.longitude.to_string().as_bytes())
-                .unwrap();
-            file.write_all(" ".as_bytes()).unwrap();
-            file.write_all("0".as_bytes()).unwrap();
-            file.write_all("\n".as_bytes()).unwrap();
+            bar.inc(1);
+            let mut node_str = node.to_string();
+            node_str.push('\n');
+            file.write_all(node_str.as_bytes()).unwrap();
         }
+
         for edges in &self.outgoing_edges {
             for edge in edges {
-                file.write_all(edge.source.to_string().as_bytes()).unwrap();
-                file.write_all(" ".as_bytes()).unwrap();
-                file.write_all(edge.target.to_string().as_bytes()).unwrap();
-                file.write_all(" ".as_bytes()).unwrap();
-                file.write_all(edge.cost.to_string().as_bytes()).unwrap();
-                file.write_all(" ".as_bytes()).unwrap();
-                file.write_all("3".as_bytes()).unwrap();
-                file.write_all(" ".as_bytes()).unwrap();
-                file.write_all("50".as_bytes()).unwrap();
-                file.write_all("\n".as_bytes()).unwrap();
+                bar.inc(1);
+                let mut edge_str = edge.to_string();
+                edge_str.push('\n');
+                file.write_all(edge_str.as_bytes()).unwrap();
             }
         }
+        bar.finish();
     }
 
     pub fn from_file(filename: &str) -> SimpleGraph {

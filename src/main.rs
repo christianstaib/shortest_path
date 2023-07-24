@@ -12,7 +12,8 @@ use crate::contrator::Contractor;
 use crate::simple_graph::SimpleGraph;
 use crate::tests::*;
 
-const GRAPH_FILE: &str = "data/toy.fmi";
+const GRAPH_FILE: &str = "data/germany.fmi";
+const GRAPH_CH_FILE: &str = "data/germany_ch.fmi";
 const SOLL_FILE: &str = "benchs/germany2.sol";
 const QUEUE_FILE: &str = "benchs/germany2.que";
 
@@ -21,13 +22,16 @@ fn main() {
     let graph = SimpleGraph::from_file(GRAPH_FILE);
     println!("loading took {:.2}s", start.elapsed().as_secs_f32());
 
-    graph.to_file("toy_test.fmi");
-
     let start = Instant::now();
     let mut contractor = Contractor::new(graph);
     contractor.contract();
     let graph = contractor.graph;
     println!("contracting took {:.2}s", start.elapsed().as_secs_f32());
+
+    let start = Instant::now();
+    graph.to_file(GRAPH_CH_FILE);
+    println!("writing took {:.2}s", start.elapsed().as_secs_f32());
+
     let dijskstra = ChDijsktra::new(graph);
 
     let mut times: Vec<Duration> = Vec::new();
