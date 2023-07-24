@@ -12,10 +12,10 @@ use crate::contrator::Contractor;
 use crate::simple_graph::SimpleGraph;
 use crate::tests::*;
 
-const GRAPH_FILE: &str = "data/germany.fmi";
-const GRAPH_CH_FILE: &str = "data/germany_ch.fmi";
-const SOLL_FILE: &str = "benchs/germany2.sol";
-const QUEUE_FILE: &str = "benchs/germany2.que";
+const GRAPH_FILE: &str = "data/stgtregbz.fmi";
+//const GRAPH_CH_FILE: &str = "data/stgtregbz_ch.fmi";
+const SOLL_FILE: &str = "benchs/stgtregbz.sol";
+const QUEUE_FILE: &str = "benchs/stgtregbz.que";
 
 fn main() {
     let start = Instant::now();
@@ -28,9 +28,9 @@ fn main() {
     let graph = contractor.graph;
     println!("contracting took {:.2}s", start.elapsed().as_secs_f32());
 
-    let start = Instant::now();
-    graph.to_file(GRAPH_CH_FILE);
-    println!("writing took {:.2}s", start.elapsed().as_secs_f32());
+    //    let start = Instant::now();
+    //    graph.to_file(GRAPH_CH_FILE);
+    //    println!("writing took {:.2}s", start.elapsed().as_secs_f32());
 
     let dijskstra = ChDijsktra::new(graph);
 

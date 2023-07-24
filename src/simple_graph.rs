@@ -1,5 +1,6 @@
 use indicatif::ProgressBar;
 
+use std::collections::HashSet;
 use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
@@ -7,7 +8,7 @@ use std::io::{self, BufRead};
 
 const SKIP_LINES: usize = 5;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub struct Edge {
     pub source: u32,
     pub target: u32,
@@ -71,13 +72,14 @@ impl SimpleGraph {
             file.write_all(node_str.as_bytes()).unwrap();
         }
 
-        for edges in &self.outgoing_edges {
-            for edge in edges {
-                bar.inc(1);
-                let mut edge_str = edge.to_string();
-                edge_str.push('\n');
-                file.write_all(edge_str.as_bytes()).unwrap();
-            }
+        let mut edges: HashSet<Edge> = self.outgoing_edges.iter().flatten().cloned().collect();
+        edges.extend(self.incoming_edges.iter().flatten().cloned());
+
+        for edge in edges {
+            bar.inc(1);
+            let mut edge_str = edge.to_string();
+            edge_str.push('\n');
+            file.write_all(edge_str.as_bytes()).unwrap();
         }
         bar.finish();
     }
@@ -130,10 +132,11 @@ impl SimpleGraph {
                 let latitude: f32 = values.next().unwrap().parse().unwrap();
                 let longitude: f32 = values.next().unwrap().parse().unwrap();
                 let _elevation: f32 = values.next().unwrap().parse().unwrap();
+                let level: u32 = values.next().unwrap_or("0").parse().unwrap();
 
                 Node {
                     id,
-                    level: 0,
+                    level,
                     latitude,
                     longitude,
                 }

@@ -109,7 +109,7 @@ impl Contractor {
         shortcuts
     }
 
-    fn removing_level_property(&mut self) {
+    pub fn removing_level_property(&mut self) {
         println!("removing edges that violated level property");
         let old_num_edges = self.graph.outgoing_edges.iter().flatten().count();
         self.graph.outgoing_edges.iter_mut().for_each(|edges| {

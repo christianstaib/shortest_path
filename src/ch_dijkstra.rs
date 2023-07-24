@@ -1,6 +1,9 @@
+use ahash::RandomState;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 
 use crate::{binary_heap::State, simple_graph::SimpleGraph};
+
+const CAPACITY: usize = 5_000;
 
 pub struct ChDijsktra {
     pub graph: SimpleGraph,
@@ -14,14 +17,14 @@ impl ChDijsktra {
     pub fn single_pair_shortest_path(&self, start_node_id: u32, end_node_id: u32) -> u32 {
         let mut cost = u32::MAX;
 
-        let mut forward_queue = BinaryHeap::new();
-        let mut backward_queue = BinaryHeap::new();
+        let mut forward_queue = BinaryHeap::with_capacity(CAPACITY);
+        let mut backward_queue = BinaryHeap::with_capacity(CAPACITY);
 
-        let mut forward_closed = HashSet::new();
-        let mut backward_closed = HashSet::new();
+        let mut forward_closed = HashSet::with_capacity_and_hasher(CAPACITY, RandomState::new());
+        let mut backward_closed = HashSet::with_capacity_and_hasher(CAPACITY, RandomState::new());
 
-        let mut forward_cost = HashMap::new();
-        let mut backward_cost = HashMap::new();
+        let mut forward_cost = HashMap::with_capacity_and_hasher(CAPACITY, RandomState::new());
+        let mut backward_cost = HashMap::with_capacity_and_hasher(CAPACITY, RandomState::new());
 
         forward_queue.push(State {
             cost: 0,
@@ -36,6 +39,10 @@ impl ChDijsktra {
         backward_cost.insert(end_node_id, 0);
 
         while !forward_queue.is_empty() | !backward_queue.is_empty() {
+            if forward_cost.capacity() < 100 {
+                print!("err");
+            }
+
             // forward
             if let Some(state) = forward_queue.pop() {
                 let current_node_id = state.position;
