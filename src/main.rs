@@ -1,15 +1,18 @@
 use std::time::Duration;
 use std::time::Instant;
 
+mod bidirectional_graph;
 mod binary_heap;
 mod ch_dijkstra;
 mod ch_queue;
 mod contrator;
-mod simple_graph;
+mod fmi_reader;
+mod graph;
 mod tests;
+use crate::bidirectional_graph::BidirectionalGraph;
 use crate::ch_dijkstra::ChDijsktra;
 use crate::contrator::Contractor;
-use crate::simple_graph::SimpleGraph;
+use crate::fmi_reader::GraphFileReader;
 use crate::tests::*;
 
 const GRAPH_FILE: &str = "data/stgtregbz.fmi";
@@ -19,7 +22,9 @@ const QUEUE_FILE: &str = "benchs/stgtregbz.que";
 
 fn main() {
     let start = Instant::now();
-    let graph = SimpleGraph::from_file(GRAPH_FILE);
+    let graph_file_reader = GraphFileReader::new();
+    let graph = graph_file_reader.from_file(GRAPH_FILE);
+    let graph = BidirectionalGraph::from_graph(&graph);
     println!("loading took {:.2}s", start.elapsed().as_secs_f32());
 
     let start = Instant::now();

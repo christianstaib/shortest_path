@@ -1,16 +1,16 @@
 use ahash::RandomState;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 
-use crate::{binary_heap::State, simple_graph::SimpleGraph};
+use crate::{bidirectional_graph::BidirectionalGraph, binary_heap::State};
 
 const CAPACITY: usize = 5_000;
 
 pub struct ChDijsktra {
-    pub graph: SimpleGraph,
+    pub graph: BidirectionalGraph,
 }
 
 impl ChDijsktra {
-    pub fn new(graph: SimpleGraph) -> Self {
+    pub fn new(graph: BidirectionalGraph) -> Self {
         ChDijsktra { graph }
     }
 
