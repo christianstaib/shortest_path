@@ -5,7 +5,7 @@ use route_planner::contrator::Contractor;
 mod common;
 
 const GRAPH_FILE: &str = "data/stgtregbz.fmi";
-const TEST_FILE: &str = "benchs/stgtregbz_test.txt";
+const TEST_FILE: &str = "data/stgtregbz_test.txt";
 
 #[test]
 fn test_route_correctness() {
