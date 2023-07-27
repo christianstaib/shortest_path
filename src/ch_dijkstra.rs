@@ -39,10 +39,6 @@ impl ChDijsktra {
         backward_cost.insert(end_node_id, 0);
 
         while !forward_queue.is_empty() | !backward_queue.is_empty() {
-            if forward_cost.capacity() < 100 {
-                print!("err");
-            }
-
             // forward
             if let Some(state) = forward_queue.pop() {
                 let current_node_id = state.position;
