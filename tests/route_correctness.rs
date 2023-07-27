@@ -1,15 +1,14 @@
+use common::fmi_reader::GraphFileReader;
 use route_planner::bidirectional_graph::BidirectionalGraph;
 use route_planner::ch_dijkstra::ChDijsktra;
 use route_planner::contrator::Contractor;
-use route_planner::fmi_reader::GraphFileReader;
-use route_planner::tests::*;
+mod common;
 
 const GRAPH_FILE: &str = "data/stgtregbz.fmi";
-const SOLL_FILE: &str = "benchs/stgtregbz.sol";
-const QUEUE_FILE: &str = "benchs/stgtregbz.que";
+const TEST_FILE: &str = "benchs/stgtregbz_test.txt";
 
 #[test]
-fn main() {
+fn test_route_correctness() {
     let graph_file_reader = GraphFileReader::new();
     let graph = graph_file_reader.from_file(GRAPH_FILE);
     let graph = BidirectionalGraph::from_graph(&graph);
@@ -20,10 +19,9 @@ fn main() {
 
     let dijskstra = ChDijsktra::new(graph);
 
-    let test_cases = get_test_cases(QUEUE_FILE, SOLL_FILE);
+    let test_cases = common::test_file_reader::get_test_cases(TEST_FILE);
     for test in &test_cases {
         let cost = dijskstra.single_pair_shortest_path(test.source, test.target);
-
         assert_eq!(cost as i32, test.cost);
     }
 }
