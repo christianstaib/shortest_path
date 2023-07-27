@@ -12,25 +12,27 @@ pub struct Node {
 
 #[derive(Clone)]
 pub struct Graph {
-    pub nodes: Vec<Node>,
     pub outgoing_edges: Vec<Vec<Edge>>,
+}
+
+#[derive(Clone)]
+pub struct Route {
+    pub source: u32,
+    pub target: u32,
+    pub cost: Option<u32>,
+    pub route: Vec<u32>,
 }
 
 impl Graph {
     pub fn new() -> Self {
         Graph {
-            nodes: Vec::new(),
             outgoing_edges: Vec::new(),
         }
     }
 
     pub fn add_edge(&mut self, edge: Edge) {
-        while self.outgoing_edges.len() <= edge.source as usize {
+        while self.outgoing_edges.len() <= std::cmp::max(edge.source, edge.target) as usize {
             self.outgoing_edges.push(Vec::new());
-        }
-
-        while self.nodes.len() <= std::cmp::max(edge.source, edge.target) as usize {
-            self.nodes.push(Node { level: 0 });
         }
 
         self.outgoing_edges[edge.source as usize].push(edge);

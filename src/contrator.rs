@@ -13,133 +13,26 @@ use std::collections::HashMap;
 
 pub struct Contractor {
     pub graph: BidirectionalGraph,
+    levels: Vec<u32>,
     cost_of_queries: Vec<u32>,
-}
-
-pub struct ChQueue<'lifetime> {
-    pub graph: &'lifetime BidirectionalGraph,
-    pub queue: BinaryHeap<CHState>,
-    cost_of_queries: Vec<u32>,
-}
-
-impl<'lifetime> ChQueue<'lifetime> {
-    pub fn new(graph: &'lifetime BidirectionalGraph) -> Self {
-        let mut queue = ChQueue {
-            graph: graph,
-            queue: BinaryHeap::new(),
-            cost_of_queries: vec![0; graph.nodes.len()],
-        };
-        queue.initialize_queue();
-        queue
-    }
-
-    fn initialize_queue(&mut self) {
-        let mut order: Vec<u32> = (0..self.graph.nodes.len()).map(|x| x as u32).collect();
-        order.shuffle(&mut thread_rng());
-        for &v in order.iter().progress() {
-            self.queue.push(CHState {
-                priority: self.edge_difference(v),
-                node_id: v,
-            });
-        }
-    }
-
-    pub fn pop(&mut self) -> Option<u32> {
-        while let Some(state) = self.queue.pop() {
-            let v = state.node_id;
-            // lazy update
-            if self.edge_difference(v) > state.priority {
-                self.queue.push(CHState {
-                    priority: self.edge_difference(v),
-                    node_id: v,
-                });
-                continue;
-            }
-            return Some(v);
-        }
-        None
-    }
-
-    fn edge_difference(&self, v: u32) -> i32 {
-        let mut edge_difference: i32 = -((&self.graph.incoming_edges[v as usize].len()
-            + &self.graph.outgoing_edges[v as usize].len())
-            as i32);
-        for uv_edge in &self.graph.incoming_edges[v as usize].clone() {
-            let max_uvw_cost = uv_edge.cost
-                + &self.graph.outgoing_edges[v as usize]
-                    .iter()
-                    .map(|edge| edge.cost)
-                    .max()
-                    .unwrap_or(0);
-            let cost = self.get_alternative_cost(uv_edge, max_uvw_cost);
-            for vw_edge in &self.graph.outgoing_edges[v as usize].clone() {
-                let uvw_cost = uv_edge.cost + vw_edge.cost;
-                let w = vw_edge.target;
-                if &uvw_cost < cost.get(&w).unwrap_or(&u32::MAX) {
-                    edge_difference += 1;
-                }
-            }
-        }
-
-        let deleted_neighbours = self.graph.outgoing_edges[v as usize]
-            .iter()
-            .filter(|edge| self.graph.outgoing_edges[edge.target as usize].len() > 0)
-            .count() as i32;
-
-        edge_difference + deleted_neighbours + self.cost_of_queries[v as usize] as i32
-    }
-
-    pub fn get_alternative_cost(&self, uv_edge: &Edge, max_cost: u32) -> HashMap<u32, u32> {
-        // get costs for routes from v to a set of nodes W defined as u -> v -> W where the routes
-        // are not going through v.
-        let u = uv_edge.source;
-        let v = uv_edge.target;
-
-        let mut queue = BinaryHeap::new();
-        // I use a HashMap as only a small number of nodes compared to the whole graph are relaxed.
-        // Therefore the overhead of initatlizing a vector is not worth it.
-        let mut cost: HashMap<u32, u32> = HashMap::new();
-        queue.push(State {
-            cost: 0,
-            position: u,
-        });
-        cost.insert(u, 0);
-        while let Some(state) = queue.pop() {
-            let current_node_id = state.position;
-            if cost[&current_node_id] >= max_cost {
-                break;
-            }
-            for edge in &self.graph.outgoing_edges[current_node_id as usize] {
-                if edge.target != v {
-                    let alternative_cost = cost[&current_node_id] + edge.cost;
-                    let current_cost = *cost.get(&edge.target).unwrap_or(&u32::MAX);
-                    if alternative_cost < current_cost {
-                        cost.insert(edge.target, alternative_cost);
-                        queue.push(State {
-                            cost: alternative_cost,
-                            position: edge.target,
-                        });
-                    }
-                }
-            }
-        }
-
-        cost
-    }
 }
 
 impl Contractor {
     pub fn new(graph: BidirectionalGraph) -> Self {
-        let cost_of_queries = vec![0; graph.nodes.len()];
+        let cost_of_queries = vec![0; graph.outgoing_edges.len()];
+        let levels = vec![0; graph.outgoing_edges.len()];
         Contractor {
             graph,
+            levels,
             cost_of_queries,
         }
     }
 
     fn initialize_queue(&mut self) -> BinaryHeap<CHState> {
         let mut queue = BinaryHeap::new();
-        let mut order: Vec<u32> = (0..self.graph.nodes.len()).map(|x| x as u32).collect();
+        let mut order: Vec<u32> = (0..self.graph.outgoing_edges.len())
+            .map(|x| x as u32)
+            .collect();
         order.shuffle(&mut thread_rng());
         for &v in order.iter().progress() {
             queue.push(CHState {
@@ -176,11 +69,11 @@ impl Contractor {
 
         let mut shortcuts: Vec<Edge> = Vec::new();
 
-        let bar = ProgressBar::new(self.graph.nodes.len() as u64);
+        let bar = ProgressBar::new(self.graph.outgoing_edges.len() as u64);
         let mut level = 0;
         while let Some(v) = self.lazy_pop(&mut queue) {
             shortcuts.append(&mut self.contract_node(v));
-            self.graph.nodes[v as usize].level = level;
+            self.levels[v as usize] = level;
 
             level += 1;
             bar.inc(1);
@@ -238,8 +131,7 @@ impl Contractor {
         let old_num_edges = self.graph.outgoing_edges.iter().flatten().count();
         self.graph.outgoing_edges.iter_mut().for_each(|edges| {
             edges.retain(|edge| {
-                self.graph.nodes[edge.source as usize].level
-                    < self.graph.nodes[edge.target as usize].level
+                self.levels[edge.source as usize] < self.levels[edge.target as usize]
             });
         });
         let new_num_edges = self.graph.outgoing_edges.iter().flatten().count();
@@ -251,8 +143,7 @@ impl Contractor {
         let old_num_edges = self.graph.incoming_edges.iter().flatten().count();
         self.graph.incoming_edges.iter_mut().for_each(|edges| {
             edges.retain(|edge| {
-                self.graph.nodes[edge.source as usize].level
-                    > self.graph.nodes[edge.target as usize].level
+                self.levels[edge.source as usize] > self.levels[edge.target as usize]
             });
         });
         let new_num_edges = self.graph.incoming_edges.iter().flatten().count();

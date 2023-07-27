@@ -22,6 +22,6 @@ fn test_route_correctness() {
     let test_cases = common::test_file_reader::get_test_cases(TEST_FILE);
     for test in &test_cases {
         let cost = dijskstra.single_pair_shortest_path(test.source, test.target);
-        assert_eq!(cost as i32, test.cost);
+        assert_eq!(cost.cost.unwrap() as i32, test.cost);
     }
 }

@@ -2,7 +2,6 @@ use crate::graph::*;
 
 #[derive(Clone)]
 pub struct BidirectionalGraph {
-    pub nodes: Vec<Node>,
     pub outgoing_edges: Vec<Vec<Edge>>,
     pub incoming_edges: Vec<Vec<Edge>>,
 }
@@ -10,7 +9,6 @@ pub struct BidirectionalGraph {
 impl BidirectionalGraph {
     pub fn new() -> Self {
         BidirectionalGraph {
-            nodes: Vec::new(),
             outgoing_edges: Vec::new(),
             incoming_edges: Vec::new(),
         }
@@ -31,9 +29,6 @@ impl BidirectionalGraph {
         }
         while self.incoming_edges.len() <= edge.target as usize {
             self.incoming_edges.push(Vec::new());
-        }
-        while self.nodes.len() <= std::cmp::max(edge.source, edge.target) as usize {
-            self.nodes.push(Node { level: 0 });
         }
 
         self.outgoing_edges[edge.source as usize].push(edge.clone());

@@ -1,7 +1,7 @@
 use ahash::RandomState;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 
-use crate::{bidirectional_graph::BidirectionalGraph, binary_heap::State};
+use crate::{bidirectional_graph::BidirectionalGraph, binary_heap::State, graph::Route};
 
 const CAPACITY: usize = 5_000;
 
@@ -14,7 +14,7 @@ impl ChDijsktra {
         ChDijsktra { graph }
     }
 
-    pub fn single_pair_shortest_path(&self, start_node_id: u32, end_node_id: u32) -> Option<u32> {
+    pub fn single_pair_shortest_path(&self, start_node_id: u32, end_node_id: u32) -> Route {
         let mut meeting_node = None;
         let mut cost = u32::MAX;
 
@@ -23,6 +23,11 @@ impl ChDijsktra {
 
         let mut forward_closed = HashSet::with_capacity_and_hasher(CAPACITY, RandomState::new());
         let mut backward_closed = HashSet::with_capacity_and_hasher(CAPACITY, RandomState::new());
+
+        let mut forward_predecessor =
+            HashMap::with_capacity_and_hasher(CAPACITY, RandomState::new());
+        let mut backward_predecessor =
+            HashMap::with_capacity_and_hasher(CAPACITY, RandomState::new());
 
         let mut forward_cost = HashMap::with_capacity_and_hasher(CAPACITY, RandomState::new());
         let mut backward_cost = HashMap::with_capacity_and_hasher(CAPACITY, RandomState::new());
@@ -57,6 +62,7 @@ impl ChDijsktra {
                     let current_cost = forward_cost.get(&edge.target).unwrap_or(&u32::MAX);
                     if &alternative_cost < current_cost {
                         forward_cost.insert(edge.target, alternative_cost);
+                        forward_predecessor.insert(edge.source, edge.target);
                         forward_queue.push(State {
                             cost: alternative_cost,
                             position: edge.target,
@@ -82,6 +88,7 @@ impl ChDijsktra {
                     let current_cost = backward_cost.get(&edge.source).unwrap_or(&u32::MAX);
                     if &alternative_cost < current_cost {
                         backward_cost.insert(edge.source, alternative_cost);
+                        backward_predecessor.insert(edge.target, edge.source);
                         backward_queue.push(State {
                             cost: alternative_cost,
                             position: edge.source,
@@ -91,9 +98,33 @@ impl ChDijsktra {
             }
         }
 
+        let mut route = Vec::new();
+        route.push(start_node_id);
+        let mut current = meeting_node.unwrap();
+        while let Some(&new_current) = forward_predecessor.get(&current) {
+            current = new_current;
+            route.insert(0, current);
+        }
+        let mut current = meeting_node.unwrap();
+        while let Some(&new_current) = backward_predecessor.get(&current) {
+            current = new_current;
+            route.push(current);
+        }
+        route.push(end_node_id);
+
         match meeting_node {
-            Some(meeting_node) => Some(cost),
-            None => None,
+            Some(_) => Route {
+                source: start_node_id,
+                target: end_node_id,
+                cost: Some(cost),
+                route,
+            },
+            None => Route {
+                source: start_node_id,
+                target: end_node_id,
+                cost: None,
+                route: Vec::new(),
+            },
         }
     }
 }
