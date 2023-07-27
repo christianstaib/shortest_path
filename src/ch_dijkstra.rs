@@ -14,7 +14,8 @@ impl ChDijsktra {
         ChDijsktra { graph }
     }
 
-    pub fn single_pair_shortest_path(&self, start_node_id: u32, end_node_id: u32) -> u32 {
+    pub fn single_pair_shortest_path(&self, start_node_id: u32, end_node_id: u32) -> Option<u32> {
+        let mut meeting_node = None;
         let mut cost = u32::MAX;
 
         let mut forward_queue = BinaryHeap::with_capacity(CAPACITY);
@@ -41,18 +42,18 @@ impl ChDijsktra {
         while !forward_queue.is_empty() | !backward_queue.is_empty() {
             // forward
             if let Some(state) = forward_queue.pop() {
-                let current_node_id = state.position;
-                forward_closed.insert(current_node_id);
-                if backward_closed.contains(&current_node_id) {
-                    let new_cost = forward_cost.get(&current_node_id).unwrap()
-                        + backward_cost.get(&current_node_id).unwrap();
+                forward_closed.insert(state.position);
+                if backward_closed.contains(&state.position) {
+                    let new_cost = forward_cost.get(&state.position).unwrap()
+                        + backward_cost.get(&state.position).unwrap();
                     if new_cost < cost {
                         cost = new_cost;
+                        meeting_node = Some(state.position);
                     }
                 }
 
-                for edge in &self.graph.outgoing_edges[current_node_id as usize] {
-                    let alternative_cost = forward_cost.get(&current_node_id).unwrap() + edge.cost;
+                for edge in &self.graph.outgoing_edges[state.position as usize] {
+                    let alternative_cost = forward_cost.get(&state.position).unwrap() + edge.cost;
                     let current_cost = forward_cost.get(&edge.target).unwrap_or(&u32::MAX);
                     if &alternative_cost < current_cost {
                         forward_cost.insert(edge.target, alternative_cost);
@@ -66,18 +67,18 @@ impl ChDijsktra {
 
             // backward
             if let Some(state) = backward_queue.pop() {
-                let current_node_id = state.position;
-                backward_closed.insert(current_node_id);
-                if forward_closed.contains(&current_node_id) {
-                    let new_cost = forward_cost.get(&current_node_id).unwrap()
-                        + backward_cost.get(&current_node_id).unwrap();
+                backward_closed.insert(state.position);
+                if forward_closed.contains(&state.position) {
+                    let new_cost = forward_cost.get(&state.position).unwrap()
+                        + backward_cost.get(&state.position).unwrap();
                     if new_cost < cost {
                         cost = new_cost;
+                        meeting_node = Some(state.position);
                     }
                 }
 
-                for edge in &self.graph.incoming_edges[current_node_id as usize] {
-                    let alternative_cost = backward_cost.get(&current_node_id).unwrap() + edge.cost;
+                for edge in &self.graph.incoming_edges[state.position as usize] {
+                    let alternative_cost = backward_cost.get(&state.position).unwrap() + edge.cost;
                     let current_cost = backward_cost.get(&edge.source).unwrap_or(&u32::MAX);
                     if &alternative_cost < current_cost {
                         backward_cost.insert(edge.source, alternative_cost);
@@ -90,6 +91,9 @@ impl ChDijsktra {
             }
         }
 
-        cost
+        match meeting_node {
+            Some(meeting_node) => Some(cost),
+            None => None,
+        }
     }
 }
