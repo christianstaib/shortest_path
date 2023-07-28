@@ -23,6 +23,12 @@ pub struct Route {
     pub route: Vec<Edge>,
 }
 
+impl Default for Graph {
+    fn default() -> Self {
+        Graph::new()
+    }
+}
+
 impl Graph {
     pub fn new() -> Self {
         Graph {

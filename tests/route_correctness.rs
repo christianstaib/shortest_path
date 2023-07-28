@@ -16,7 +16,7 @@ fn test_route_correctness() {
     let graph = BidirectionalGraph::from_graph(&graph);
 
     let mut contractor = Contractor::new(graph.clone());
-    let shortcuts = contractor.contract();
+    let _shortcuts = contractor.contract();
     let graph = contractor.graph;
 
     let dijskstra = ChDijsktra::new(graph);
@@ -43,7 +43,7 @@ fn test_route_correctness() {
         );
 
         // test edges are continuous
-        for edge_window in (&route.route).windows(2) {
+        for edge_window in route.route.windows(2) {
             assert_eq!(
                 edge_window[0].target, edge_window[1].source,
                 "current edges source doesn't match previous edges target"

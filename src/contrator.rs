@@ -246,7 +246,7 @@ impl Contractor {
             as i32);
         for uv_edge in &self.graph.incoming_edges[v as usize].clone() {
             let max_uvw_cost = uv_edge.cost
-                + &self.graph.outgoing_edges[v as usize]
+                + self.graph.outgoing_edges[v as usize]
                     .iter()
                     .map(|edge| edge.cost)
                     .max()
@@ -263,7 +263,7 @@ impl Contractor {
 
         let deleted_neighbours = self.graph.outgoing_edges[v as usize]
             .iter()
-            .filter(|edge| self.graph.outgoing_edges[edge.target as usize].len() > 0)
+            .filter(|edge| !self.graph.outgoing_edges[edge.target as usize].is_empty())
             .count() as i32;
 
         edge_difference + deleted_neighbours + self.cost_of_queries[v as usize] as i32
