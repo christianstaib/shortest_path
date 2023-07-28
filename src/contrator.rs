@@ -59,7 +59,7 @@ impl Contractor {
         None
     }
 
-    pub fn contract(&mut self) {
+    pub fn contract(&mut self) -> Vec<Edge> {
         println!("initializing queue");
         let mut queue = self.initialize_queue();
 
@@ -82,13 +82,15 @@ impl Contractor {
 
         self.graph.outgoing_edges = outgoing_edges;
         self.graph.incoming_edges = incoming_edges;
-        for shortcut in shortcuts {
+        for shortcut in &shortcuts {
             self.graph.outgoing_edges[shortcut.source as usize].push(shortcut.clone());
             self.graph.incoming_edges[shortcut.target as usize].push(shortcut.clone());
         }
 
         self.removing_double_edges();
         self.removing_level_property();
+
+        shortcuts
     }
 
     fn contract_node(&mut self, v: u32) -> Vec<Edge> {

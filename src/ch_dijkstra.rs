@@ -62,7 +62,7 @@ impl ChDijsktra {
                     let current_cost = forward_cost.get(&edge.target).unwrap_or(&u32::MAX);
                     if &alternative_cost < current_cost {
                         forward_cost.insert(edge.target, alternative_cost);
-                        forward_predecessor.insert(edge.source, edge.target);
+                        forward_predecessor.insert(edge.target, edge.source);
                         forward_queue.push(State {
                             cost: alternative_cost,
                             position: edge.target,
@@ -88,7 +88,7 @@ impl ChDijsktra {
                     let current_cost = backward_cost.get(&edge.source).unwrap_or(&u32::MAX);
                     if &alternative_cost < current_cost {
                         backward_cost.insert(edge.source, alternative_cost);
-                        backward_predecessor.insert(edge.target, edge.source);
+                        backward_predecessor.insert(edge.source, edge.target);
                         backward_queue.push(State {
                             cost: alternative_cost,
                             position: edge.source,
@@ -105,12 +105,12 @@ impl ChDijsktra {
             current = new_current;
             route.insert(0, current);
         }
-        let mut current = meeting_node.unwrap();
-        while let Some(&new_current) = backward_predecessor.get(&current) {
-            current = new_current;
-            route.push(current);
-        }
-        route.push(end_node_id);
+        //let mut current = meeting_node.unwrap();
+        //while let Some(&new_current) = backward_predecessor.get(&current) {
+        //    current = new_current;
+        //    route.push(current);
+        //}
+        //route.push(end_node_id);
 
         match meeting_node {
             Some(_) => Route {
