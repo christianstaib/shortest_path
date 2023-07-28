@@ -59,15 +59,15 @@ impl GraphFileReader {
             .map(|edge_line| {
                 let line = edge_line.unwrap();
                 let mut values = line.split_whitespace();
-                let source_id: u32 = values.next().unwrap().parse().unwrap();
-                let target_id: u32 = values.next().unwrap().parse().unwrap();
+                let source: u32 = values.next().unwrap().parse().unwrap();
+                let target: u32 = values.next().unwrap().parse().unwrap();
                 let cost: u32 = values.next().unwrap().parse().unwrap();
                 let _type: u32 = values.next().unwrap().parse().unwrap();
                 let _maxspeed: usize = values.next().unwrap().parse().unwrap();
 
                 Edge {
-                    source: source_id,
-                    target: target_id,
+                    source,
+                    target,
                     cost,
                 }
             })

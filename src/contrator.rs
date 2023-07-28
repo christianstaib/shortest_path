@@ -101,7 +101,7 @@ impl Contractor {
         for uv_edge in uv_edges {
             let u = uv_edge.source;
             let max_uvw_cost = uv_edge.cost
-                + &self.graph.outgoing_edges[v as usize]
+                + self.graph.outgoing_edges[v as usize]
                     .iter()
                     .map(|edge| edge.cost)
                     .max()
@@ -193,7 +193,7 @@ impl Contractor {
 
     pub fn disconnect(&mut self, node_id: u32) {
         while let Some(incoming_edge) = self.graph.incoming_edges[node_id as usize].pop() {
-            self.graph.outgoing_edges[incoming_edge.source as usize as usize]
+            self.graph.outgoing_edges[incoming_edge.source as usize]
                 .retain(|outgoing_edge| outgoing_edge.target != node_id);
         }
         while let Some(outgoing_edge) = self.graph.outgoing_edges[node_id as usize].pop() {
@@ -241,8 +241,8 @@ impl Contractor {
     }
 
     pub fn edge_difference(&self, v: u32) -> i32 {
-        let mut edge_difference: i32 = -((&self.graph.incoming_edges[v as usize].len()
-            + &self.graph.outgoing_edges[v as usize].len())
+        let mut edge_difference: i32 = -((self.graph.incoming_edges[v as usize].len()
+            + self.graph.outgoing_edges[v as usize].len())
             as i32);
         for uv_edge in &self.graph.incoming_edges[v as usize].clone() {
             let max_uvw_cost = uv_edge.cost

@@ -14,9 +14,9 @@ impl ChDijsktra {
         ChDijsktra { graph }
     }
 
-    pub fn single_pair_shortest_path(&self, start_node_id: u32, end_node_id: u32) -> Route {
+    pub fn single_pair_shortest_path(&self, source: u32, target: u32) -> Route {
         let mut meeting_node = None;
-        let mut cost = u32::MAX;
+        let mut cost = None;
 
         let mut forward_queue = BinaryHeap::with_capacity(CAPACITY);
         let mut backward_queue = BinaryHeap::with_capacity(CAPACITY);
@@ -34,15 +34,15 @@ impl ChDijsktra {
 
         forward_queue.push(State {
             cost: 0,
-            position: start_node_id,
+            position: source,
         });
         backward_queue.push(State {
             cost: 0,
-            position: end_node_id,
+            position: target,
         });
 
-        forward_cost.insert(start_node_id, 0);
-        backward_cost.insert(end_node_id, 0);
+        forward_cost.insert(source, 0);
+        backward_cost.insert(target, 0);
 
         while !forward_queue.is_empty() | !backward_queue.is_empty() {
             // forward
@@ -51,8 +51,8 @@ impl ChDijsktra {
                 if backward_closed.contains(&state.position) {
                     let new_cost = forward_cost.get(&state.position).unwrap()
                         + backward_cost.get(&state.position).unwrap();
-                    if new_cost < cost {
-                        cost = new_cost;
+                    if new_cost < cost.unwrap_or(u32::MAX) {
+                        cost = Some(new_cost);
                         meeting_node = Some(state.position);
                     }
                 }
@@ -62,7 +62,7 @@ impl ChDijsktra {
                     let current_cost = forward_cost.get(&edge.target).unwrap_or(&u32::MAX);
                     if &alternative_cost < current_cost {
                         forward_cost.insert(edge.target, alternative_cost);
-                        forward_predecessor.insert(edge.target, edge.source);
+                        forward_predecessor.insert(edge.target, (edge.source, edge));
                         forward_queue.push(State {
                             cost: alternative_cost,
                             position: edge.target,
@@ -77,8 +77,8 @@ impl ChDijsktra {
                 if forward_closed.contains(&state.position) {
                     let new_cost = forward_cost.get(&state.position).unwrap()
                         + backward_cost.get(&state.position).unwrap();
-                    if new_cost < cost {
-                        cost = new_cost;
+                    if new_cost < cost.unwrap_or(u32::MAX) {
+                        cost = Some(new_cost);
                         meeting_node = Some(state.position);
                     }
                 }
@@ -88,7 +88,7 @@ impl ChDijsktra {
                     let current_cost = backward_cost.get(&edge.source).unwrap_or(&u32::MAX);
                     if &alternative_cost < current_cost {
                         backward_cost.insert(edge.source, alternative_cost);
-                        backward_predecessor.insert(edge.source, edge.target);
+                        backward_predecessor.insert(edge.source, (edge.target, edge));
                         backward_queue.push(State {
                             cost: alternative_cost,
                             position: edge.source,
@@ -99,32 +99,22 @@ impl ChDijsktra {
         }
 
         let mut route = Vec::new();
-        route.push(start_node_id);
         let mut current = meeting_node.unwrap();
         while let Some(&new_current) = forward_predecessor.get(&current) {
-            current = new_current;
-            route.insert(0, current);
+            current = new_current.0;
+            route.insert(0, new_current.1.clone());
         }
-        //let mut current = meeting_node.unwrap();
-        //while let Some(&new_current) = backward_predecessor.get(&current) {
-        //    current = new_current;
-        //    route.push(current);
-        //}
-        //route.push(end_node_id);
+        let mut current = meeting_node.unwrap();
+        while let Some(&new_current) = backward_predecessor.get(&current) {
+            current = new_current.0;
+            route.push(new_current.1.clone());
+        }
 
-        match meeting_node {
-            Some(_) => Route {
-                source: start_node_id,
-                target: end_node_id,
-                cost: Some(cost),
-                route,
-            },
-            None => Route {
-                source: start_node_id,
-                target: end_node_id,
-                cost: None,
-                route: Vec::new(),
-            },
+        Route {
+            source,
+            target,
+            cost,
+            route,
         }
     }
 }

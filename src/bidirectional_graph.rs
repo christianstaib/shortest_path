@@ -6,6 +6,12 @@ pub struct BidirectionalGraph {
     pub incoming_edges: Vec<Vec<Edge>>,
 }
 
+impl Default for BidirectionalGraph {
+    fn default() -> Self {
+        BidirectionalGraph::new()
+    }
+}
+
 impl BidirectionalGraph {
     pub fn new() -> Self {
         BidirectionalGraph {
