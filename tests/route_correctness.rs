@@ -17,9 +17,8 @@ fn test_route_correctness() {
 
     let mut contractor = Contractor::new(graph.clone());
     let _shortcuts = contractor.contract();
-    let graph = contractor.graph;
 
-    let dijskstra = ChDijsktra::new(graph);
+    let dijskstra = ChDijsktra::new(contractor.get_graph());
 
     let mut times = Vec::new();
 
