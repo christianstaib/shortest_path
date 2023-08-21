@@ -7,8 +7,9 @@ use rand::seq::SliceRandom;
 use rand::thread_rng;
 
 use std::{
-    cell::RefCell,
     collections::BinaryHeap,
+    rc::Rc,
+    sync::Mutex,
     time::{Duration, Instant},
 };
 
@@ -16,24 +17,24 @@ use indicatif::{ProgressBar, ProgressIterator};
 use std::collections::HashMap;
 
 pub struct Contractor {
-    pub graph: RefCell<BidirectionalGraph>,
+    pub graph: Rc<Mutex<BidirectionalGraph>>,
     pub queue: CHQueue,
     levels: Vec<u32>,
 }
 
 pub struct CHQueue {
-    graph: RefCell<BidirectionalGraph>,
+    graph: Rc<Mutex<BidirectionalGraph>>,
+    queue: BinaryHeap<CHState>,
     cost_of_queries: Vec<u32>,
-    levels: Vec<u32>,
 }
 
 impl CHQueue {
-    fn lazy_pop(&self, queue: &mut BinaryHeap<CHState>) -> Option<u32> {
-        while let Some(state) = queue.pop() {
+    fn lazy_pop(&mut self) -> Option<u32> {
+        while let Some(state) = self.queue.pop() {
             let v = state.node_id;
             // lazy update
             if self.edge_difference(v) > state.priority {
-                queue.push(CHState {
+                self.queue.push(CHState {
                     priority: self.edge_difference(v),
                     node_id: v,
                 });
@@ -64,7 +65,7 @@ impl CHQueue {
             if cost[&current_node_id] >= max_cost {
                 break;
             }
-            for edge in &self.graph.borrow().outgoing_edges[current_node_id as usize] {
+            for edge in &self.graph.try_lock().unwrap().outgoing_edges[current_node_id as usize] {
                 if edge.target != v {
                     let alternative_cost = cost[&current_node_id] + edge.cost;
                     let current_cost = *cost.get(&edge.target).unwrap_or(&u32::MAX);
@@ -83,18 +84,19 @@ impl CHQueue {
     }
 
     pub fn edge_difference(&self, v: u32) -> i32 {
-        let mut edge_difference: i32 = -((self.graph.borrow().incoming_edges[v as usize].len()
-            + self.graph.borrow().outgoing_edges[v as usize].len())
-            as i32);
-        for uv_edge in &self.graph.borrow().incoming_edges[v as usize].clone() {
+        let num1 = self.graph.try_lock().unwrap().incoming_edges[v as usize].len();
+        let num2 = self.graph.try_lock().unwrap().outgoing_edges[v as usize].len();
+        let mut edge_difference: i32 = -((num1 + num2) as i32);
+        let uv_edges = self.graph.try_lock().unwrap().incoming_edges[v as usize].clone();
+        for uv_edge in &uv_edges {
             let max_uvw_cost = uv_edge.cost
-                + self.graph.borrow().outgoing_edges[v as usize]
+                + self.graph.try_lock().unwrap().outgoing_edges[v as usize]
                     .iter()
                     .map(|edge| edge.cost)
                     .max()
                     .unwrap_or(0);
             let cost = self.get_alternative_cost(uv_edge, max_uvw_cost);
-            for vw_edge in &self.graph.borrow().outgoing_edges[v as usize].clone() {
+            for vw_edge in &self.graph.try_lock().unwrap().outgoing_edges[v as usize].clone() {
                 let uvw_cost = uv_edge.cost + vw_edge.cost;
                 let w = vw_edge.target;
                 if &uvw_cost < cost.get(&w).unwrap_or(&u32::MAX) {
@@ -103,27 +105,26 @@ impl CHQueue {
             }
         }
 
-        let deleted_neighbours = self.graph.borrow().outgoing_edges[v as usize]
+        let graph = self.graph.try_lock().unwrap();
+        let deleted_neighbours = graph.outgoing_edges[v as usize]
             .iter()
-            .filter(|edge| !self.graph.borrow().outgoing_edges[edge.target as usize].is_empty())
+            .filter(|edge| !graph.outgoing_edges[edge.target as usize].is_empty())
             .count() as i32;
 
         edge_difference + deleted_neighbours + self.cost_of_queries[v as usize] as i32
     }
 
-    fn initialize_queue(&mut self) -> BinaryHeap<CHState> {
-        let mut queue = BinaryHeap::new();
-        let mut order: Vec<u32> = (0..self.graph.borrow().outgoing_edges.len())
+    fn initialize_queue(&mut self) {
+        let mut order: Vec<u32> = (0..self.graph.try_lock().unwrap().outgoing_edges.len())
             .map(|x| x as u32)
             .collect();
         order.shuffle(&mut thread_rng());
         for &v in order.iter().progress() {
-            queue.push(CHState {
+            self.queue.push(CHState {
                 priority: self.edge_difference(v),
                 node_id: v,
             });
         }
-        queue
     }
 }
 
@@ -132,13 +133,17 @@ impl Contractor {
         let cost_of_queries = vec![0; graph.outgoing_edges.len()];
         let levels = vec![0; graph.outgoing_edges.len()];
 
-        let graph = RefCell::new(graph);
+        let graph = Rc::new(Mutex::new(graph));
 
-        let queue = CHQueue {
-            graph: RefCell::clone(&graph),
+        let queue = BinaryHeap::new();
+        let mut queue = CHQueue {
+            graph: graph.clone(),
+            queue,
             cost_of_queries,
-            levels: levels.clone(),
         };
+
+        println!("initializing queue");
+        queue.initialize_queue();
 
         Contractor {
             graph,
@@ -148,40 +153,44 @@ impl Contractor {
     }
 
     pub fn get_graph(self) -> BidirectionalGraph {
-        self.graph.take()
+        drop(self.queue);
+        println!("strong count: {:?}", Rc::strong_count(&self.graph));
+        let var1 = self.graph;
+        let var2 = Rc::into_inner(var1).unwrap();
+        var2.into_inner().unwrap()
     }
 
     pub fn contract(&mut self) -> Vec<Edge> {
-        println!("initializing queue");
-        let mut queue = self.queue.initialize_queue();
-
         println!("start contracting node");
-        let outgoing_edges = self.graph.borrow().outgoing_edges.clone();
-        let incoming_edges = self.graph.borrow().incoming_edges.clone();
+        let outgoing_edges = self.graph.try_lock().unwrap().outgoing_edges.clone();
+        let incoming_edges = self.graph.try_lock().unwrap().incoming_edges.clone();
 
         let mut shortcuts: Vec<Edge> = Vec::new();
 
-        let bar = ProgressBar::new(self.graph.borrow().outgoing_edges.len() as u64);
+        let bar = ProgressBar::new(self.graph.try_lock().unwrap().outgoing_edges.len() as u64);
         let mut level = 0;
-        while let Some(v) = self.queue.lazy_pop(&mut queue) {
-            let start = Instant::now();
-            shortcuts.append(&mut self.contract_node(v));
-            let elapsed = start.elapsed();
-            if elapsed > Duration::from_millis(10) {
-                println!("took {:?} to contractnode", elapsed);
-            }
-            self.levels[v as usize] = level;
+        while true {
+            let v = self.queue.lazy_pop();
+            if let Some(v) = v {
+                shortcuts.append(&mut self.contract_node(v));
+                self.levels[v as usize] = level;
 
-            level += 1;
-            bar.inc(1);
+                level += 1;
+                bar.inc(1);
+            } else {
+                break;
+            }
         }
         bar.finish();
 
-        self.graph.borrow_mut().outgoing_edges = outgoing_edges;
-        self.graph.borrow_mut().incoming_edges = incoming_edges;
-        for shortcut in &shortcuts {
-            self.graph.borrow_mut().outgoing_edges[shortcut.source as usize].push(shortcut.clone());
-            self.graph.borrow_mut().incoming_edges[shortcut.target as usize].push(shortcut.clone());
+        {
+            let mut graph = self.graph.try_lock().unwrap();
+            graph.outgoing_edges = outgoing_edges;
+            graph.incoming_edges = incoming_edges;
+            for shortcut in &shortcuts {
+                graph.outgoing_edges[shortcut.source as usize].push(shortcut.clone());
+                graph.incoming_edges[shortcut.target as usize].push(shortcut.clone());
+            }
         }
 
         self.removing_double_edges();
@@ -195,19 +204,22 @@ impl Contractor {
 
         let mut shortcuts = Vec::new();
         {
-            let graph = &mut self.graph.borrow_mut();
-
-            let uv_edges = &graph.incoming_edges[v as usize].clone();
-            let uw_edges = &graph.outgoing_edges[v as usize].clone();
+            let uv_edges = &self.graph.try_lock().unwrap().incoming_edges[v as usize].clone();
+            let uw_edges = &self.graph.try_lock().unwrap().outgoing_edges[v as usize].clone();
             for uv_edge in uv_edges {
                 let u = uv_edge.source;
                 let max_uvw_cost = uv_edge.cost
-                    + graph.outgoing_edges[v as usize]
+                    + self.graph.try_lock().unwrap().outgoing_edges[v as usize]
                         .iter()
                         .map(|edge| edge.cost)
                         .max()
                         .unwrap_or(0);
+                let start = Instant::now();
                 let costs = self.queue.get_alternative_cost(uv_edge, max_uvw_cost);
+                let end = start.elapsed();
+                if end > Duration::from_millis(2) {
+                    println!("alternative_cost {:?}", start.elapsed());
+                }
                 for vw_edge in uw_edges {
                     let w = vw_edge.target;
                     self.queue.cost_of_queries[w as usize] = self.queue.cost_of_queries[w as usize]
@@ -219,8 +231,10 @@ impl Contractor {
                             target: w,
                             cost: uv_edge.cost + vw_edge.cost,
                         };
-                        graph.outgoing_edges[u as usize].push(shortcut.clone());
-                        graph.incoming_edges[w as usize].push(shortcut.clone());
+                        self.graph.try_lock().unwrap().outgoing_edges[u as usize]
+                            .push(shortcut.clone());
+                        self.graph.try_lock().unwrap().incoming_edges[w as usize]
+                            .push(shortcut.clone());
                         shortcuts.push(shortcut.clone());
                     }
                 }
@@ -230,17 +244,25 @@ impl Contractor {
         let start = Instant::now();
         self.disconnect(v);
         let elapsed = start.elapsed();
-        if elapsed > Duration::from_millis(10) {
-            println!("took {:?} to disconnect node", elapsed);
+        if elapsed > Duration::from_millis(2) {
+            println!("disconnecting took {:?}", elapsed);
         }
         shortcuts
     }
 
     pub fn removing_level_property(&mut self) {
         println!("removing edges that violated level property");
-        let old_num_edges = self.graph.borrow().outgoing_edges.iter().flatten().count();
+        let old_num_edges = self
+            .graph
+            .try_lock()
+            .unwrap()
+            .outgoing_edges
+            .iter()
+            .flatten()
+            .count();
         self.graph
-            .borrow_mut()
+            .try_lock()
+            .unwrap()
             .outgoing_edges
             .iter_mut()
             .for_each(|edges| {
@@ -248,15 +270,30 @@ impl Contractor {
                     self.levels[edge.source as usize] < self.levels[edge.target as usize]
                 });
             });
-        let new_num_edges = self.graph.borrow().outgoing_edges.iter().flatten().count();
+        let new_num_edges = self
+            .graph
+            .try_lock()
+            .unwrap()
+            .outgoing_edges
+            .iter()
+            .flatten()
+            .count();
         println!(
             "removed {} edge in forward graph",
             old_num_edges - new_num_edges
         );
 
-        let old_num_edges = self.graph.borrow().incoming_edges.iter().flatten().count();
+        let old_num_edges = self
+            .graph
+            .try_lock()
+            .unwrap()
+            .incoming_edges
+            .iter()
+            .flatten()
+            .count();
         self.graph
-            .borrow_mut()
+            .try_lock()
+            .unwrap()
             .incoming_edges
             .iter_mut()
             .for_each(|edges| {
@@ -264,7 +301,14 @@ impl Contractor {
                     self.levels[edge.source as usize] > self.levels[edge.target as usize]
                 });
             });
-        let new_num_edges = self.graph.borrow().incoming_edges.iter().flatten().count();
+        let new_num_edges = self
+            .graph
+            .try_lock()
+            .unwrap()
+            .incoming_edges
+            .iter()
+            .flatten()
+            .count();
         println!(
             "removed {} edge in backward graph",
             old_num_edges - new_num_edges
@@ -274,47 +318,78 @@ impl Contractor {
     fn removing_double_edges(&mut self) {
         println!("removing double nodes");
 
-        let num_edges = self.graph.borrow().incoming_edges.iter().flatten().count();
-        for i in (0..self.graph.borrow().incoming_edges.len()).progress() {
+        let num_edges = self
+            .graph
+            .try_lock()
+            .unwrap()
+            .incoming_edges
+            .iter()
+            .flatten()
+            .count();
+        let len = self.graph.try_lock().unwrap().incoming_edges.len();
+        for i in (0..len).progress() {
             let mut edge_map = HashMap::new();
-            for edge in &self.graph.borrow().incoming_edges[i] {
+            for edge in &self.graph.try_lock().unwrap().incoming_edges[i] {
                 let edge_tuple = (edge.source, edge.target);
                 let current_cost = edge_map.get(&edge_tuple).unwrap_or(&u32::MAX);
                 if &edge.cost < current_cost {
                     edge_map.insert(edge_tuple, edge.cost);
                 }
             }
-            self.graph.borrow_mut().incoming_edges[i]
+            self.graph.try_lock().unwrap().incoming_edges[i]
                 .retain(|edge| edge.cost <= *edge_map.get(&(edge.source, edge.target)).unwrap());
         }
-        let new_num_edges = self.graph.borrow().incoming_edges.iter().flatten().count();
+        let new_num_edges = self
+            .graph
+            .try_lock()
+            .unwrap()
+            .incoming_edges
+            .iter()
+            .flatten()
+            .count();
         println!("removed {} edges", num_edges - new_num_edges);
 
-        let num_edges = self.graph.borrow().outgoing_edges.iter().flatten().count();
-        for i in (0..self.graph.borrow().outgoing_edges.len()).progress() {
+        let num_edges = self
+            .graph
+            .try_lock()
+            .unwrap()
+            .outgoing_edges
+            .iter()
+            .flatten()
+            .count();
+        let len = self.graph.try_lock().unwrap().outgoing_edges.len();
+        for i in (0..len).progress() {
             let mut edge_map = HashMap::new();
-            for edge in &self.graph.borrow().outgoing_edges[i] {
+            for edge in &self.graph.try_lock().unwrap().outgoing_edges[i] {
                 let edge_tuple = (edge.source, edge.target);
                 let current_cost = edge_map.get(&edge_tuple).unwrap_or(&u32::MAX);
                 if &edge.cost < current_cost {
                     edge_map.insert(edge_tuple, edge.cost);
                 }
             }
-            self.graph.borrow_mut().outgoing_edges[i]
+            self.graph.try_lock().unwrap().outgoing_edges[i]
                 .retain(|edge| edge.cost <= *edge_map.get(&(edge.source, edge.target)).unwrap());
         }
-        let new_num_edges = self.graph.borrow().outgoing_edges.iter().flatten().count();
+        let new_num_edges = self
+            .graph
+            .try_lock()
+            .unwrap()
+            .outgoing_edges
+            .iter()
+            .flatten()
+            .count();
         println!("removed {} edges", num_edges - new_num_edges);
     }
 
     pub fn disconnect(&mut self, node_id: u32) {
-        //let mut to_remove = self.graph.borrow_mut().incoming_edges[node_id as usize].clone();
-        //self.graph.borrow_mut().incoming_edges[node_id as usize].clear();
+        //let mut to_remove = Rc::get_mut(&mut self.graph).unwrap().incoming_edges[node_id as usize].clone();
+        //Rc::get_mut(&mut self.graph).unwrap().incoming_edges[node_id as usize].clear();
         //while let Some(incoming_edge) = to_remove.pop() {
         while true {
-            let incoming_edge = self.graph.borrow_mut().incoming_edges[node_id as usize].pop();
+            let incoming_edge =
+                self.graph.try_lock().unwrap().incoming_edges[node_id as usize].pop();
             if let Some(incoming_edge) = incoming_edge {
-                self.graph.borrow_mut().outgoing_edges[incoming_edge.source as usize]
+                self.graph.try_lock().unwrap().outgoing_edges[incoming_edge.source as usize]
                     .retain(|outgoing_edge| outgoing_edge.target != node_id);
             } else {
                 break;
@@ -322,33 +397,14 @@ impl Contractor {
         }
 
         while true {
-            let outgoing_edge = self.graph.borrow_mut().outgoing_edges[node_id as usize].pop();
+            let outgoing_edge =
+                self.graph.try_lock().unwrap().outgoing_edges[node_id as usize].pop();
             if let Some(outgoing_edge) = outgoing_edge {
-                self.graph.borrow_mut().incoming_edges[outgoing_edge.target as usize]
+                self.graph.try_lock().unwrap().incoming_edges[outgoing_edge.target as usize]
                     .retain(|incoming_edge| incoming_edge.source != node_id);
             } else {
                 break;
             }
         }
     }
-
-    //pub fn disconnect(&mut self, node_id: u32) {
-    //    let mut to_remove = std::mem::replace(
-    //        &mut self.graph.borrow_mut().incoming_edges[node_id as usize],
-    //        Vec::new(),
-    //    );
-    //    while let Some(incoming_edge) = to_remove.pop() {
-    //        self.graph.borrow_mut().outgoing_edges[incoming_edge.source as usize]
-    //            .retain(|outgoing_edge| outgoing_edge.target != node_id);
-    //    }
-
-    //    let mut to_remove = std::mem::replace(
-    //        &mut self.graph.borrow_mut().outgoing_edges[node_id as usize],
-    //        Vec::new(),
-    //    );
-    //    while let Some(outgoing_edge) = to_remove.pop() {
-    //        self.graph.borrow_mut().incoming_edges[outgoing_edge.target as usize]
-    //            .retain(|incoming_edge| incoming_edge.source != node_id);
-    //    }
-    //}
 }
