@@ -5,11 +5,6 @@ use route_planner::ch_dijkstra::ChDijsktra;
 use route_planner::contrator::Contractor;
 mod common;
 
-
-
-
-
-
 const GRAPH_FILE: &str = "tests/data/stgtregbz.fmi";
 const TEST_FILE: &str = "tests/data/stgtregbz_test.txt";
 

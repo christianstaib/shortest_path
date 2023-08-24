@@ -3,8 +3,7 @@ use crate::binary_heap::State;
 use crate::graph::Edge;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::{cmp::Ordering, collections::HashMap};
 
 use indicatif::ProgressIterator;
 use std::{collections::BinaryHeap, rc::Rc, sync::Mutex};
