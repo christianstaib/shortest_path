@@ -2,12 +2,13 @@ use crate::graph::*;
 
 pub struct FastGraph {
     edges: Vec<Edge>,
-    edges_start_at: Vec<usize>,
+    edges_start_at: Vec<u32>,
 }
 
 impl FastGraph {
-    pub fn new(mut edges: Vec<Edge>) -> Self {
-        let mut edges_start_for_node: Vec<usize> = vec![0; edges.len() + 1];
+    pub fn new(edges: &Vec<Edge>) -> Self {
+        let mut edges = edges.clone();
+        let mut edges_start_at: Vec<u32> = vec![0; edges.len() + 1];
 
         // temporarrly adding a node in order to generate the list
         edges.push(Edge {
@@ -21,24 +22,24 @@ impl FastGraph {
         for (i, edge) in edges.iter().enumerate() {
             if edge.source != current {
                 for index in (current + 1)..=edge.source {
-                    edges_start_for_node[index as usize] = i;
+                    edges_start_at[index as usize] = i as u32;
                 }
                 current = edge.source;
             }
         }
         edges.pop();
 
-        FastGraph {
-            edges: edges.clone(),
-            edges_start_at: edges_start_for_node.clone(),
+        Self {
+            edges,
+            edges_start_at,
         }
     }
 
-    pub fn get_edges(&self, source: u32) -> Vec<Edge> {
-        let vec1 = &self.edges
-            [self.edges_start_at[source as usize]..self.edges_start_at[source as usize + 1]];
-        let vec2 = vec1.to_vec().clone();
+    pub fn get_edges(&self, source: u32) -> &[Edge] {
+        let start = self.edges_start_at[source as usize] as usize;
+        let end = self.edges_start_at[source as usize + 1] as usize;
+        let vec1 = &self.edges[start..end];
 
-        vec2
+        vec1
     }
 }

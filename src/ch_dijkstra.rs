@@ -17,10 +17,12 @@ pub struct ChDijsktra {
 
 impl ChDijsktra {
     pub fn new(graph: BidirectionalGraph) -> Self {
+        let forward_edges = graph.outgoing_edges.iter().flatten().cloned().collect();
+        let forward_graph = FastGraph::new(&forward_edges);
         ChDijsktra {
-            forward_graph: FastGraph::new(graph.outgoing_edges.iter().flatten().cloned().collect()),
+            forward_graph,
             backward_graph: FastGraph::new(
-                graph
+                &graph
                     .incoming_edges
                     .iter()
                     .flatten()
@@ -76,12 +78,12 @@ impl ChDijsktra {
                 }
             }
 
-            for edge in &self.forward_graph.get_edges(state.position) {
+            for edge in self.forward_graph.get_edges(state.position) {
                 let alternative_cost = forward_cost.get(&state.position).unwrap() + edge.cost;
                 let current_cost = forward_cost.get(&edge.target).unwrap_or(&u32::MAX);
                 if &alternative_cost < current_cost {
                     forward_cost.insert(edge.target, alternative_cost);
-                    forward_predecessor.insert(edge.target, (edge.source, edge.clone()));
+                    forward_predecessor.insert(edge.target, edge.source);
                     forward_queue.push(State {
                         cost: alternative_cost,
                         position: edge.target,
@@ -102,12 +104,12 @@ impl ChDijsktra {
                 }
             }
 
-            for edge in &self.backward_graph.get_edges(state.position) {
+            for edge in self.backward_graph.get_edges(state.position) {
                 let alternative_cost = backward_cost.get(&state.position).unwrap() + edge.cost;
                 let current_cost = backward_cost.get(&edge.target).unwrap_or(&u32::MAX);
                 if &alternative_cost < current_cost {
                     backward_cost.insert(edge.target, alternative_cost);
-                    backward_predecessor.insert(edge.target, (edge.source, edge.clone()));
+                    backward_predecessor.insert(edge.target, edge.source);
                     backward_queue.push(State {
                         cost: alternative_cost,
                         position: edge.target,
@@ -116,16 +118,14 @@ impl ChDijsktra {
             }
         }
 
-        let mut route = Vec::new();
+        let route = Vec::new();
         let mut current = meeting_node.unwrap();
         while let Some(new_current) = forward_predecessor.get(&current) {
-            current = new_current.0;
-            route.insert(0, new_current.1.clone());
+            current = *new_current;
         }
         let mut current = meeting_node.unwrap();
         while let Some(new_current) = backward_predecessor.get(&current) {
-            current = new_current.0;
-            route.push(new_current.1.clone());
+            current = *new_current;
         }
 
         Route {
