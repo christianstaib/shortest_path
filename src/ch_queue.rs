@@ -43,6 +43,17 @@ pub struct CHQueue {
 }
 
 impl CHQueue {
+    pub fn new(graph: Rc<Mutex<BidirectionalGraph>>) -> Self {
+        let queue = BinaryHeap::new();
+        let cost_of_queries = vec![0; graph.try_lock().unwrap().outgoing_edges.len()];
+        let mut queue = Self {
+            graph,
+            queue,
+            cost_of_queries,
+        };
+        queue.initialize();
+        queue
+    }
     pub fn lazy_pop(&mut self) -> Option<u32> {
         while let Some(state) = self.queue.pop() {
             let v = state.node_id;
@@ -128,7 +139,7 @@ impl CHQueue {
         edge_difference + deleted_neighbours + self.cost_of_queries[v as usize] as i32
     }
 
-    pub fn initialize_queue(&mut self) {
+    fn initialize(&mut self) {
         let mut order: Vec<u32> = (0..self.graph.try_lock().unwrap().outgoing_edges.len())
             .map(|x| x as u32)
             .collect();

@@ -15,20 +15,12 @@ pub struct Contractor {
 
 impl Contractor {
     pub fn new(graph: BidirectionalGraph) -> Self {
-        let cost_of_queries = vec![0; graph.outgoing_edges.len()];
         let levels = vec![0; graph.outgoing_edges.len()];
 
         let graph = Rc::new(Mutex::new(graph));
 
-        let queue = BinaryHeap::new();
-        let mut queue = CHQueue {
-            graph: graph.clone(),
-            queue,
-            cost_of_queries,
-        };
-
         println!("initializing queue");
-        queue.initialize_queue();
+        let queue = CHQueue::new(graph.clone());
 
         Contractor {
             graph,
