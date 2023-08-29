@@ -119,13 +119,15 @@ impl ChDijsktra {
         }
 
         let route = Vec::new();
-        let mut current = meeting_node.unwrap();
-        while let Some(new_current) = forward_predecessor.get(&current) {
-            current = *new_current;
-        }
-        let mut current = meeting_node.unwrap();
-        while let Some(new_current) = backward_predecessor.get(&current) {
-            current = *new_current;
+        if meeting_node.is_some() {
+            let mut current = meeting_node.unwrap();
+            while let Some(new_current) = forward_predecessor.get(&current) {
+                current = *new_current;
+            }
+            let mut current = meeting_node.unwrap();
+            while let Some(new_current) = backward_predecessor.get(&current) {
+                current = *new_current;
+            }
         }
 
         Route {

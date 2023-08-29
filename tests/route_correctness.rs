@@ -6,8 +6,8 @@ use route_planner::ch_dijkstra::ChDijsktra;
 use route_planner::contrator::Contractor;
 mod common;
 
-const GRAPH_FILE: &str = "tests/data/stgtregbz.fmi";
-const TEST_FILE: &str = "tests/data/stgtregbz_test.txt";
+const GRAPH_FILE: &str = "tests/data/germany.fmi";
+const TEST_FILE: &str = "tests/data/germany_test2.txt";
 
 #[test]
 fn test_route_correctness() {
@@ -16,6 +16,7 @@ fn test_route_correctness() {
     let graph = BidirectionalGraph::from_graph(&graph);
 
     let mut contractor = Contractor::new(graph.clone());
+
     let _shortcuts = contractor.contract();
 
     let dijskstra = ChDijsktra::new(contractor.get_graph());
@@ -28,15 +29,13 @@ fn test_route_correctness() {
         let route = dijskstra.single_pair_shortest_path(test.source, test.target);
         times.push(before.elapsed());
 
-        //println!(
-        //    "{} {} {}",
-        //    route.cost.unwrap() as i32 - test.cost,
-        //    route.cost.unwrap(),
-        //    test.cost
-        //);
+        let cost = match route.cost {
+            Some(cost) => cost as i32,
+            None => -1,
+        };
 
         // test sum of cost
-        assert_eq!(route.cost.unwrap() as i32, test.cost);
+        assert_eq!(cost, test.cost);
 
         // // test sum of edge cost
         // let mut all_cost = 0;
