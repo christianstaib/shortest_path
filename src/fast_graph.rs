@@ -29,6 +29,9 @@ impl FastGraph {
         }
         edges.pop();
 
+        edges.shrink_to_fit();
+        edges_start_at.shrink_to_fit();
+
         Self {
             edges,
             edges_start_at,
