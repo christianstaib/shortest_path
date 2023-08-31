@@ -2,7 +2,7 @@ use crate::bidirectional_graph::BidirectionalGraph;
 use crate::ch_queue::CHQueue;
 use crate::graph::Edge;
 
-use std::{collections::BinaryHeap, rc::Rc, sync::Mutex};
+use std::{rc::Rc, sync::Mutex};
 
 use indicatif::{ProgressBar, ProgressIterator};
 use std::collections::HashMap;

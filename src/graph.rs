@@ -1,4 +1,4 @@
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Edge {
     pub source: u32,
     pub target: u32,
