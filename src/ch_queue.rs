@@ -1,5 +1,5 @@
 use crate::bidirectional_graph::BidirectionalGraph;
-use crate::binary_heap::State;
+use crate::binary_heap::MinimumItem;
 use crate::graph::Edge;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
@@ -80,10 +80,13 @@ impl CHQueue {
         // I use a HashMap as only a small number of nodes compared to the whole graph are relaxed.
         // Therefore the overhead of initatlizing a vector is not worth it.
         let mut cost: HashMap<u32, u32> = HashMap::new();
-        queue.push(State { key: 0, value: u });
+        queue.push(MinimumItem {
+            priority: 0,
+            item: u,
+        });
         cost.insert(u, 0);
         while let Some(state) = queue.pop() {
-            let current_node_id = state.value;
+            let current_node_id = state.item;
             if cost[&current_node_id] >= max_cost {
                 break;
             }
@@ -93,9 +96,9 @@ impl CHQueue {
                     let current_cost = *cost.get(&edge.target).unwrap_or(&u32::MAX);
                     if alternative_cost < current_cost {
                         cost.insert(edge.target, alternative_cost);
-                        queue.push(State {
-                            key: alternative_cost,
-                            value: edge.target,
+                        queue.push(MinimumItem {
+                            priority: alternative_cost,
+                            item: edge.target,
                         });
                     }
                 }

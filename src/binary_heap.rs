@@ -1,34 +1,34 @@
 use std::cmp::Ordering;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub struct State {
-    pub key: u32,
-    pub value: u32,
+pub struct MinimumItem {
+    pub priority: u32,
+    pub item: u32,
 }
 
-impl State {
-    pub fn new(key: u32, value: u32) -> Self {
-        Self { key, value }
+impl MinimumItem {
+    pub fn new(priority: u32, item: u32) -> Self {
+        Self { priority, item }
     }
 }
 
 // The priority queue depends on `Ord`.
 // Explicitly implement the trait so the queue becomes a min-heap
 // instead of a max-heap.
-impl Ord for State {
+impl Ord for MinimumItem {
     fn cmp(&self, other: &Self) -> Ordering {
         // Notice that the we flip the ordering on costs.
         // In case of a tie we compare positions - this step is necessary
         // to make implementations of `PartialEq` and `Ord` consistent.
         other
-            .key
-            .cmp(&self.key)
-            .then_with(|| self.value.cmp(&other.value))
+            .priority
+            .cmp(&self.priority)
+            .then_with(|| self.item.cmp(&other.item))
     }
 }
 
 // `PartialOrd` needs to be implemented as well.
-impl PartialOrd for State {
+impl PartialOrd for MinimumItem {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }

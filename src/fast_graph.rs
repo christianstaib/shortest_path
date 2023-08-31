@@ -55,8 +55,8 @@ impl FastGraph {
     pub fn edges_from(&self, source: u32) -> &[FastEdge] {
         let start = self.edges_start_at[source as usize] as usize;
         let end = self.edges_start_at[source as usize + 1] as usize;
-        let vec1 = &self.edges[start..end];
+        
 
-        vec1
+        &self.edges[start..end] as _
     }
 }
