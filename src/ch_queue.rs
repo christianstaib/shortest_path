@@ -80,13 +80,10 @@ impl CHQueue {
         // I use a HashMap as only a small number of nodes compared to the whole graph are relaxed.
         // Therefore the overhead of initatlizing a vector is not worth it.
         let mut cost: HashMap<u32, u32> = HashMap::new();
-        queue.push(State {
-            cost: 0,
-            position: u,
-        });
+        queue.push(State { key: 0, value: u });
         cost.insert(u, 0);
         while let Some(state) = queue.pop() {
-            let current_node_id = state.position;
+            let current_node_id = state.value;
             if cost[&current_node_id] >= max_cost {
                 break;
             }
@@ -97,8 +94,8 @@ impl CHQueue {
                     if alternative_cost < current_cost {
                         cost.insert(edge.target, alternative_cost);
                         queue.push(State {
-                            cost: alternative_cost,
-                            position: edge.target,
+                            key: alternative_cost,
+                            value: edge.target,
                         });
                     }
                 }

@@ -1,9 +1,15 @@
 use std::cmp::Ordering;
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub struct State {
-    pub cost: u32,
-    pub position: u32,
+    pub key: u32,
+    pub value: u32,
+}
+
+impl State {
+    pub fn new(key: u32, value: u32) -> Self {
+        Self { key, value }
+    }
 }
 
 // The priority queue depends on `Ord`.
@@ -15,9 +21,9 @@ impl Ord for State {
         // In case of a tie we compare positions - this step is necessary
         // to make implementations of `PartialEq` and `Ord` consistent.
         other
-            .cost
-            .cmp(&self.cost)
-            .then_with(|| self.position.cmp(&other.position))
+            .key
+            .cmp(&self.key)
+            .then_with(|| self.value.cmp(&other.value))
     }
 }
 

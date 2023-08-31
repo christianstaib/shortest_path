@@ -1,7 +1,13 @@
 use crate::graph::*;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct FastEdge {
+    pub target: u32,
+    pub cost: u32,
+}
+
 pub struct FastGraph {
-    edges: Vec<Edge>,
+    edges: Vec<FastEdge>,
     edges_start_at: Vec<u32>,
 }
 
@@ -29,6 +35,14 @@ impl FastGraph {
         }
         edges.pop();
 
+        let mut edges: Vec<FastEdge> = edges
+            .iter()
+            .map(|edge| FastEdge {
+                target: edge.target,
+                cost: edge.cost,
+            })
+            .collect();
+
         edges.shrink_to_fit();
         edges_start_at.shrink_to_fit();
 
@@ -38,7 +52,7 @@ impl FastGraph {
         }
     }
 
-    pub fn get_edges(&self, source: u32) -> &[Edge] {
+    pub fn edges_from(&self, source: u32) -> &[FastEdge] {
         let start = self.edges_start_at[source as usize] as usize;
         let end = self.edges_start_at[source as usize + 1] as usize;
         let vec1 = &self.edges[start..end];
