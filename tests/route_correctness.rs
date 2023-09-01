@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use std::time::{Duration, Instant};
 
 use common::fmi_reader::GraphFileReader;
@@ -6,8 +7,8 @@ use route_planner::ch_dijkstra::ChDijsktra;
 use route_planner::contrator::Contractor;
 mod common;
 
-const GRAPH_FILE: &str = "tests/data/stgtregbz.fmi";
-const TEST_FILE: &str = "tests/data/stgtregbz_test.txt";
+const GRAPH_FILE: &str = "tests/data/germany.fmi";
+const TEST_FILE: &str = "tests/data/germany_test2.txt";
 
 #[test]
 fn test_route_correctness() {
@@ -15,11 +16,13 @@ fn test_route_correctness() {
     let graph = graph_file_reader.from_file(GRAPH_FILE);
     let graph = BidirectionalGraph::from_graph(&graph);
 
-    let mut contractor = Contractor::new(graph.clone());
+    let mut contractor = Contractor::new(graph);
 
-    let _shortcuts = contractor.contract();
+    let shortcuts = contractor.contract();
+    println!("there are {} shortcuts", shortcuts.len());
+    let graph = contractor.get_graph();
 
-    let dijskstra = ChDijsktra::new(contractor.get_graph());
+    let dijskstra = ChDijsktra::new(graph);
 
     let mut times = Vec::new();
 
@@ -35,7 +38,23 @@ fn test_route_correctness() {
         };
 
         // test sum of cost
-        assert_eq!(cost, test.cost);
+        assert_eq!(
+            cost, test.cost,
+            "cost {} -> {} should be {} but is {}",
+            test.source, test.target, test.cost, cost
+        );
+
+        //for (prev, next) in route.route.into_iter().tuples() {
+        //    if shortcuts
+        //        .iter()
+        //        .find(|edge| (edge.source == prev) & (edge.target == next))
+        //        .is_some()
+        //    {
+        //        println!("{} {} is shortcut", prev, next);
+        //    } else {
+        //        println!("{} {} is no shortcut", prev, next);
+        //    }
+        //}
 
         // // test sum of edge cost
         // let mut all_cost = 0;

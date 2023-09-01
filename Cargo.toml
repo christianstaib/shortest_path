@@ -12,6 +12,7 @@ rand = "0.8"
 rayon = "1.7"
 indicatif = "0.17"
 ahash = "0.8"
+itertools = "0.9"
 
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"] }

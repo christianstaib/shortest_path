@@ -20,7 +20,7 @@ pub struct Route {
     pub source: u32,
     pub target: u32,
     pub cost: Option<u32>,
-    pub route: Vec<Edge>,
+    pub route: Vec<u32>,
 }
 
 impl Default for Graph {
