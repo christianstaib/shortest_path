@@ -1,14 +1,71 @@
 use itertools::Itertools;
+use rand::Rng;
+use route_planner::graph::Edge;
+use std::cmp::max;
+use std::fs::File;
+use std::io::{self, BufRead};
 use std::time::{Duration, Instant};
 
 use common::fmi_reader::GraphFileReader;
 use route_planner::bidirectional_graph::BidirectionalGraph;
 use route_planner::ch_dijkstra::ChDijsktra;
 use route_planner::contrator::Contractor;
+
+use crate::common::test_file_reader::TestRoute;
 mod common;
 
-const GRAPH_FILE: &str = "tests/data/germany.fmi";
-const TEST_FILE: &str = "tests/data/germany_test2.txt";
+const GRAPH_FILE: &str = "tests/data/stgtregbz.fmi";
+const TEST_FILE: &str = "tests/data/stgtregbz_test.txt";
+
+//#[test]
+fn test_usa_speed() {
+    let file = File::open("tests/data/USA-road-d.USA.gr").unwrap();
+    let reader = io::BufReader::new(file);
+    let mut graph = BidirectionalGraph::new();
+    let mut num_nodes = 0;
+
+    reader.lines().for_each(|line| {
+        let line = line.unwrap();
+        let mut line = line.split_whitespace();
+        line.next();
+        let source = line.next().unwrap().parse().unwrap();
+        let target = line.next().unwrap().parse().unwrap();
+        let cost = line.next().unwrap().parse().unwrap();
+        graph.add_edge(Edge {
+            source,
+            target,
+            cost,
+        });
+
+        num_nodes = max(num_nodes, max(source, target));
+    });
+
+    let before = Instant::now();
+    let mut contractor = Contractor::new(graph);
+    contractor.contract();
+    println!("contracting graph took {:?}", before.elapsed());
+    let graph = contractor.get_graph().unwrap();
+    let dijskstra = ChDijsktra::new(graph);
+
+    let mut rng = rand::thread_rng();
+    let times: Vec<Duration> = (0..1_000)
+        .map(|_| {
+            let test = TestRoute {
+                source: rng.gen_range(0..num_nodes),
+                target: rng.gen_range(0..num_nodes),
+                cost: 0,
+            };
+            let before = Instant::now();
+            dijskstra.single_pair_shortest_path(test.source, test.target);
+            before.elapsed()
+        })
+        .collect();
+
+    println!(
+        "average time was {:?}",
+        times.iter().sum::<Duration>() / times.len() as u32
+    );
+}
 
 #[test]
 fn test_route_correctness() {
@@ -16,14 +73,20 @@ fn test_route_correctness() {
     let graph = graph_file_reader.from_file(GRAPH_FILE);
     let graph = BidirectionalGraph::from_graph(&graph);
 
+    let before = Instant::now();
     let mut contractor = Contractor::new(graph);
 
     let shortcuts = contractor.contract();
     println!("there are {} shortcuts", shortcuts.len());
-    let graph = contractor.get_graph();
+    let graph = contractor.get_graph().unwrap();
 
     let dijskstra = ChDijsktra::new(graph);
 
+    println!(
+        "contracting graph took {:?}, there are {} shortcuts",
+        before.elapsed(),
+        shortcuts.len()
+    );
     let mut times = Vec::new();
 
     let test_cases = common::test_file_reader::get_test_cases(TEST_FILE);

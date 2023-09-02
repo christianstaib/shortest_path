@@ -1,6 +1,7 @@
 use crate::bidirectional_graph::BidirectionalGraph;
 use crate::binary_heap::MinimumItem;
 use crate::graph::Edge;
+use ahash::RandomState;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::{cmp::Ordering, collections::HashMap};
@@ -70,28 +71,31 @@ impl CHQueue {
         None
     }
 
-    pub fn get_alternative_cost(&self, uv_edge: &Edge, max_cost: u32) -> HashMap<u32, u32> {
+    pub fn single_source_cost_without(
+        &self,
+        source: u32,
+        without: u32,
+        max_cost: u32,
+    ) -> HashMap<u32, u32, RandomState> {
         // get costs for routes from v to a set of nodes W defined as u -> v -> W where the routes
         // are not going through v.
-        let u = uv_edge.source;
-        let v = uv_edge.target;
 
         let mut queue = BinaryHeap::new();
         // I use a HashMap as only a small number of nodes compared to the whole graph are relaxed.
         // Therefore the overhead of initatlizing a vector is not worth it.
-        let mut cost: HashMap<u32, u32> = HashMap::new();
+        let mut cost = HashMap::with_hasher(RandomState::new());
         queue.push(MinimumItem {
             priority: 0,
-            item: u,
+            item: source,
         });
-        cost.insert(u, 0);
+        cost.insert(source, 0);
         while let Some(state) = queue.pop() {
             let current_node_id = state.item;
             if cost[&current_node_id] >= max_cost {
                 break;
             }
             for edge in &self.graph.try_lock().unwrap().outgoing_edges[current_node_id as usize] {
-                if edge.target != v {
+                if edge.target != without {
                     let alternative_cost = cost[&current_node_id] + edge.cost;
                     let current_cost = *cost.get(&edge.target).unwrap_or(&u32::MAX);
                     if alternative_cost < current_cost {
@@ -109,22 +113,32 @@ impl CHQueue {
     }
 
     pub fn edge_difference(&self, v: u32) -> i32 {
-        let num1 = self.graph.try_lock().unwrap().incoming_edges[v as usize].len();
-        let num2 = self.graph.try_lock().unwrap().outgoing_edges[v as usize].len();
-        let mut edge_difference: i32 = -((num1 + num2) as i32);
+        let sum_incoming_edges = self.graph.try_lock().unwrap().incoming_edges[v as usize].len();
+        let sum_outgoing_edges = self.graph.try_lock().unwrap().outgoing_edges[v as usize].len();
+        let mut edge_difference = sum_outgoing_edges as i32 - sum_incoming_edges as i32;
+
         let uv_edges = self.graph.try_lock().unwrap().incoming_edges[v as usize].clone();
-        for uv_edge in &uv_edges {
-            let max_uvw_cost = uv_edge.cost
+        for &Edge {
+            source,
+            target: _,
+            cost: uv_cost,
+        } in &uv_edges
+        {
+            let max_uvw_cost = uv_cost
                 + self.graph.try_lock().unwrap().outgoing_edges[v as usize]
                     .iter()
                     .map(|edge| edge.cost)
                     .max()
                     .unwrap_or(0);
-            let cost = self.get_alternative_cost(uv_edge, max_uvw_cost);
-            for vw_edge in &self.graph.try_lock().unwrap().outgoing_edges[v as usize].clone() {
-                let uvw_cost = uv_edge.cost + vw_edge.cost;
-                let w = vw_edge.target;
-                if &uvw_cost < cost.get(&w).unwrap_or(&u32::MAX) {
+            let cost = self.single_source_cost_without(source, v, max_uvw_cost);
+            for &Edge {
+                source: _,
+                target,
+                cost: vw_cost,
+            } in &self.graph.try_lock().unwrap().outgoing_edges[v as usize].clone()
+            {
+                let uvw_cost = uv_cost + vw_cost;
+                if &uvw_cost < cost.get(&target).unwrap_or(&u32::MAX) {
                     edge_difference += 1;
                 }
             }

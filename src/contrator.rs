@@ -16,10 +16,7 @@ pub struct Contractor {
 impl Contractor {
     pub fn new(graph: BidirectionalGraph) -> Self {
         let levels = vec![0; graph.outgoing_edges.len()];
-
         let graph = Rc::new(Mutex::new(graph));
-
-        println!("initializing queue");
         let queue = CHQueue::new(graph.clone());
 
         Contractor {
@@ -29,12 +26,14 @@ impl Contractor {
         }
     }
 
-    pub fn get_graph(self) -> BidirectionalGraph {
+    pub fn get_graph(self) -> Option<BidirectionalGraph> {
         drop(self.queue);
-        println!("strong count: {:?}", Rc::strong_count(&self.graph));
-        let var1 = self.graph;
-        let var2 = Rc::into_inner(var1).unwrap();
-        var2.into_inner().unwrap()
+        if let Some(graph) = Rc::into_inner(self.graph) {
+            if let Ok(graph) = graph.into_inner() {
+                return Some(graph);
+            }
+        }
+        None
     }
 
     pub fn contract(&mut self) -> Vec<Edge> {
@@ -77,25 +76,33 @@ impl Contractor {
         let mut shortcuts = Vec::new();
         let uv_edges = &self.graph.try_lock().unwrap().incoming_edges[v as usize].clone();
         let uw_edges = &self.graph.try_lock().unwrap().outgoing_edges[v as usize].clone();
-        for uv_edge in uv_edges {
-            let u = uv_edge.source;
-            let max_uvw_cost = uv_edge.cost
+        for &Edge {
+            source: u,
+            target: v,
+            cost: uv_cost,
+        } in uv_edges
+        {
+            let max_uvw_cost = uv_cost
                 + self.graph.try_lock().unwrap().outgoing_edges[v as usize]
                     .iter()
                     .map(|edge| edge.cost)
                     .max()
                     .unwrap_or(0);
-            let costs = self.queue.get_alternative_cost(uv_edge, max_uvw_cost);
-            for vw_edge in uw_edges {
-                let w = vw_edge.target;
+            let costs = self.queue.single_source_cost_without(u, v, max_uvw_cost);
+            for &Edge {
+                source: _,
+                target: w,
+                cost: vw_cost,
+            } in uw_edges
+            {
                 self.queue.cost_of_queries[w as usize] = self.queue.cost_of_queries[w as usize]
                     .max(self.queue.cost_of_queries[v as usize] + 1);
-                let uvw_cost = uv_edge.cost + vw_edge.cost;
-                if &uvw_cost < costs.get(&w).unwrap_or(&u32::MAX) {
+                let cost = uv_cost + vw_cost;
+                if &cost < costs.get(&w).unwrap_or(&u32::MAX) {
                     let shortcut = Edge {
                         source: u,
                         target: w,
-                        cost: uv_edge.cost + vw_edge.cost,
+                        cost,
                     };
                     self.graph.try_lock().unwrap().outgoing_edges[u as usize]
                         .push(shortcut.clone());
