@@ -1,6 +1,6 @@
-use crate::bidirectional_graph::BidirectionalGraph;
 use crate::ch_queue::CHQueue;
 use crate::graph::Edge;
+use crate::{bidirectional_graph::BidirectionalGraph, dijkstra_helper::DijkstraHelper};
 
 use std::{rc::Rc, sync::RwLock};
 
@@ -73,6 +73,8 @@ impl Contractor {
     fn contract_node(&mut self, v: u32) -> Vec<Edge> {
         // U --> v --> W
 
+        let dijkstra_helper = DijkstraHelper::new(self.graph.clone());
+
         let mut shortcuts = Vec::new();
         let uv_edges = &self.graph.read().unwrap().incoming_edges[v as usize].clone();
         let uw_edges = &self.graph.read().unwrap().outgoing_edges[v as usize].clone();
@@ -85,7 +87,7 @@ impl Contractor {
             cost: uv_cost,
         } in uv_edges
         {
-            let costs = self.queue.single_source_cost_without(u, v, max_cost);
+            let costs = dijkstra_helper.single_source_cost_without(u, v, max_cost);
             for &Edge {
                 source: _,
                 target: w,
