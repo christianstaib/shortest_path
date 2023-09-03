@@ -76,29 +76,24 @@ impl Contractor {
         let mut shortcuts = Vec::new();
         let uv_edges = &self.graph.try_lock().unwrap().incoming_edges[v as usize].clone();
         let uw_edges = &self.graph.try_lock().unwrap().outgoing_edges[v as usize].clone();
+
+        let max_cost = uv_edges.iter().map(|edge| edge.cost).max().unwrap_or(0)
+            + uw_edges.iter().map(|edge| edge.cost).max().unwrap_or(0);
         for &Edge {
             source: u,
-            target: v,
+            target: _,
             cost: uv_cost,
         } in uv_edges
         {
-            let max_uvw_cost = uv_cost
-                + self.graph.try_lock().unwrap().outgoing_edges[v as usize]
-                    .iter()
-                    .map(|edge| edge.cost)
-                    .max()
-                    .unwrap_or(0);
-            let costs = self.queue.single_source_cost_without(u, v, max_uvw_cost);
+            let costs = self.queue.single_source_cost_without(u, v, max_cost);
             for &Edge {
                 source: _,
                 target: w,
                 cost: vw_cost,
             } in uw_edges
             {
-                self.queue.cost_of_queries[w as usize] = self.queue.cost_of_queries[w as usize]
-                    .max(self.queue.cost_of_queries[v as usize] + 1);
                 let cost = uv_cost + vw_cost;
-                if &cost < costs.get(&w).unwrap_or(&u32::MAX) {
+                if cost < *costs.get(&w).unwrap_or(&u32::MAX) {
                     let shortcut = Edge {
                         source: u,
                         target: w,
