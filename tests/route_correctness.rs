@@ -90,52 +90,54 @@ fn test_route_correctness() {
     let mut times = Vec::new();
 
     let test_cases = common::test_file_reader::get_test_cases(TEST_FILE);
-    for test in &test_cases {
-        let before = Instant::now();
-        let route = dijskstra.single_pair_shortest_path(test.source, test.target);
-        times.push(before.elapsed());
+    for _ in 0..10 {
+        for test in &test_cases {
+            let before = Instant::now();
+            let route = dijskstra.single_pair_shortest_path(test.source, test.target);
+            times.push(before.elapsed());
 
-        let cost = match route.cost {
-            Some(cost) => cost as i32,
-            None => -1,
-        };
+            let cost = match route.cost {
+                Some(cost) => cost as i32,
+                None => -1,
+            };
 
-        // test sum of cost
-        assert_eq!(
-            cost, test.cost,
-            "cost {} -> {} should be {} but is {}",
-            test.source, test.target, test.cost, cost
-        );
+            // test sum of cost
+            assert_eq!(
+                cost, test.cost,
+                "cost {} -> {} should be {} but is {}",
+                test.source, test.target, test.cost, cost
+            );
 
-        //for (prev, next) in route.route.into_iter().tuples() {
-        //    if shortcuts
-        //        .iter()
-        //        .find(|edge| (edge.source == prev) & (edge.target == next))
-        //        .is_some()
-        //    {
-        //        println!("{} {} is shortcut", prev, next);
-        //    } else {
-        //        println!("{} {} is no shortcut", prev, next);
-        //    }
-        //}
+            //for (prev, next) in route.route.into_iter().tuples() {
+            //    if shortcuts
+            //        .iter()
+            //        .find(|edge| (edge.source == prev) & (edge.target == next))
+            //        .is_some()
+            //    {
+            //        println!("{} {} is shortcut", prev, next);
+            //    } else {
+            //        println!("{} {} is no shortcut", prev, next);
+            //    }
+            //}
 
-        // // test sum of edge cost
-        // let mut all_cost = 0;
-        // for edge in &route.route {
-        //     all_cost += edge.cost;
-        // }
-        // assert_eq!(
-        //     all_cost as i32, test.cost,
-        //     "sum of edges costs is not correct"
-        // );
+            // // test sum of edge cost
+            // let mut all_cost = 0;
+            // for edge in &route.route {
+            //     all_cost += edge.cost;
+            // }
+            // assert_eq!(
+            //     all_cost as i32, test.cost,
+            //     "sum of edges costs is not correct"
+            // );
 
-        // test edges are continuous
-        // for edge_window in route.route.windows(2) {
-        //     assert_eq!(
-        //         edge_window[0].target, edge_window[1].source,
-        //         "current edges source doesn't match previous edges target"
-        //     );
-        // }
+            // test edges are continuous
+            // for edge_window in route.route.windows(2) {
+            //     assert_eq!(
+            //         edge_window[0].target, edge_window[1].source,
+            //         "current edges source doesn't match previous edges target"
+            //     );
+            // }
+        }
     }
 
     println!("sum of time is {:?}", times.iter().sum::<Duration>());
