@@ -2,13 +2,13 @@ use crate::bidirectional_graph::BidirectionalGraph;
 use crate::ch_queue::CHQueue;
 use crate::graph::Edge;
 
-use std::{rc::Rc, sync::Mutex};
+use std::{rc::Rc, sync::RwLock};
 
 use indicatif::{ProgressBar, ProgressIterator};
 use std::collections::HashMap;
 
 pub struct Contractor {
-    pub graph: Rc<Mutex<BidirectionalGraph>>,
+    pub graph: Rc<RwLock<BidirectionalGraph>>,
     pub queue: CHQueue,
     levels: Vec<u32>,
 }
@@ -16,7 +16,7 @@ pub struct Contractor {
 impl Contractor {
     pub fn new(graph: BidirectionalGraph) -> Self {
         let levels = vec![0; graph.outgoing_edges.len()];
-        let graph = Rc::new(Mutex::new(graph));
+        let graph = Rc::new(RwLock::new(graph));
         let queue = CHQueue::new(graph.clone());
 
         Contractor {
@@ -38,12 +38,12 @@ impl Contractor {
 
     pub fn contract(&mut self) -> Vec<Edge> {
         println!("start contracting node");
-        let outgoing_edges = self.graph.try_lock().unwrap().outgoing_edges.clone();
-        let incoming_edges = self.graph.try_lock().unwrap().incoming_edges.clone();
+        let outgoing_edges = self.graph.read().unwrap().outgoing_edges.clone();
+        let incoming_edges = self.graph.read().unwrap().incoming_edges.clone();
 
         let mut shortcuts: Vec<Edge> = Vec::new();
 
-        let bar = ProgressBar::new(self.graph.try_lock().unwrap().outgoing_edges.len() as u64);
+        let bar = ProgressBar::new(self.graph.read().unwrap().outgoing_edges.len() as u64);
         let mut level = 0;
         while let Some(v) = self.queue.lazy_pop() {
             shortcuts.append(&mut self.contract_node(v));
@@ -55,7 +55,7 @@ impl Contractor {
         bar.finish();
 
         {
-            let mut graph = self.graph.try_lock().unwrap();
+            let mut graph = self.graph.write().unwrap();
             graph.outgoing_edges = outgoing_edges;
             graph.incoming_edges = incoming_edges;
             for shortcut in &shortcuts {
@@ -74,8 +74,8 @@ impl Contractor {
         // U --> v --> W
 
         let mut shortcuts = Vec::new();
-        let uv_edges = &self.graph.try_lock().unwrap().incoming_edges[v as usize].clone();
-        let uw_edges = &self.graph.try_lock().unwrap().outgoing_edges[v as usize].clone();
+        let uv_edges = &self.graph.read().unwrap().incoming_edges[v as usize].clone();
+        let uw_edges = &self.graph.read().unwrap().outgoing_edges[v as usize].clone();
 
         let max_cost = uv_edges.iter().map(|edge| edge.cost).max().unwrap_or(0)
             + uw_edges.iter().map(|edge| edge.cost).max().unwrap_or(0);
@@ -99,10 +99,9 @@ impl Contractor {
                         target: w,
                         cost,
                     };
-                    self.graph.try_lock().unwrap().outgoing_edges[u as usize]
-                        .push(shortcut.clone());
-                    self.graph.try_lock().unwrap().incoming_edges[w as usize]
-                        .push(shortcut.clone());
+                    let mut graph = self.graph.write().unwrap();
+                    graph.outgoing_edges[u as usize].push(shortcut.clone());
+                    graph.incoming_edges[w as usize].push(shortcut.clone());
                     shortcuts.push(shortcut.clone());
                 }
             }
@@ -113,7 +112,7 @@ impl Contractor {
 
     pub fn removing_level_property(&mut self) {
         println!("removing edges that violated level property");
-        let mut graph = self.graph.try_lock().unwrap();
+        let mut graph = self.graph.write().unwrap();
         graph.outgoing_edges.iter_mut().for_each(|edges| {
             edges.retain(|edge| {
                 self.levels[edge.source as usize] < self.levels[edge.target as usize]
@@ -129,7 +128,7 @@ impl Contractor {
 
     fn removing_double_edges(&mut self) {
         println!("removing double nodes");
-        let mut graph = self.graph.try_lock().unwrap();
+        let mut graph = self.graph.write().unwrap();
 
         for i in (0..graph.incoming_edges.len()).progress() {
             let mut edge_map = HashMap::new();
@@ -159,7 +158,7 @@ impl Contractor {
     }
 
     pub fn disconnect(&mut self, node_id: u32) {
-        let mut graph = self.graph.try_lock().unwrap();
+        let mut graph = self.graph.write().unwrap();
         while let Some(incoming_edge) = graph.incoming_edges[node_id as usize].pop() {
             graph.outgoing_edges[incoming_edge.source as usize]
                 .retain(|outgoing_edge| outgoing_edge.target != node_id);

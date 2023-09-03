@@ -4,10 +4,14 @@ use crate::graph::Edge;
 use ahash::RandomState;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use std::{cmp::Ordering, collections::HashMap};
+use std::{
+    cmp::{max, Ordering},
+    collections::HashMap,
+    sync::RwLock,
+};
 
 use indicatif::ProgressIterator;
-use std::{collections::BinaryHeap, rc::Rc, sync::Mutex};
+use std::{collections::BinaryHeap, rc::Rc};
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub struct CHState {
@@ -38,17 +42,17 @@ impl PartialOrd for CHState {
 }
 
 pub struct CHQueue {
-    graph: Rc<Mutex<BidirectionalGraph>>,
+    graph: Rc<RwLock<BidirectionalGraph>>,
     queue: BinaryHeap<CHState>,
     cost_of_queries: Vec<u32>,
     deleted: Vec<bool>,
 }
 
 impl CHQueue {
-    pub fn new(graph: Rc<Mutex<BidirectionalGraph>>) -> Self {
+    pub fn new(graph: Rc<RwLock<BidirectionalGraph>>) -> Self {
         let queue = BinaryHeap::new();
-        let cost_of_queries = vec![0; graph.try_lock().unwrap().outgoing_edges.len()];
-        let deleted = vec![false; graph.try_lock().unwrap().outgoing_edges.len()];
+        let cost_of_queries = vec![0; graph.read().unwrap().outgoing_edges.len()];
+        let deleted = vec![false; graph.read().unwrap().outgoing_edges.len()];
         let mut queue = Self {
             graph,
             queue,
@@ -78,7 +82,7 @@ impl CHQueue {
 
     fn update_cost_of_queries(&mut self, v: u32) {
         // U --> v --> W
-        let vw_edges = &self.graph.try_lock().unwrap().outgoing_edges[v as usize].clone();
+        let vw_edges = &self.graph.read().unwrap().outgoing_edges[v as usize].clone();
 
         for &Edge {
             source: _,
@@ -86,8 +90,10 @@ impl CHQueue {
             cost: _,
         } in vw_edges
         {
-            self.cost_of_queries[w as usize] =
-                self.cost_of_queries[w as usize].max(self.cost_of_queries[v as usize] + 1);
+            self.cost_of_queries[w as usize] = max(
+                self.cost_of_queries[w as usize],
+                self.cost_of_queries[v as usize] + 1,
+            );
         }
     }
 
@@ -100,7 +106,7 @@ impl CHQueue {
         // get costs for routes from v to a set of nodes W defined as u -> v -> W where the routes
         // are not going through v.
 
-        let graph = self.graph.try_lock().unwrap();
+        let graph = self.graph.read().unwrap();
 
         let mut queue = BinaryHeap::new();
         // I use a HashMap as only a small number of nodes compared to the whole graph are relaxed.
@@ -135,8 +141,8 @@ impl CHQueue {
     }
 
     pub fn edge_difference(&self, v: u32) -> i32 {
-        let uv_edges = self.graph.try_lock().unwrap().incoming_edges[v as usize].clone();
-        let vw_edges = self.graph.try_lock().unwrap().outgoing_edges[v as usize].clone();
+        let uv_edges = self.graph.read().unwrap().incoming_edges[v as usize].clone();
+        let vw_edges = self.graph.read().unwrap().outgoing_edges[v as usize].clone();
 
         let mut edge_difference = -((uv_edges.len() + vw_edges.len()) as i32);
 
@@ -161,7 +167,7 @@ impl CHQueue {
     }
 
     fn initialize(&mut self) {
-        let mut order: Vec<u32> = (0..self.graph.try_lock().unwrap().outgoing_edges.len())
+        let mut order: Vec<u32> = (0..self.graph.read().unwrap().outgoing_edges.len())
             .map(|x| x as u32)
             .collect();
         order.shuffle(&mut thread_rng());
