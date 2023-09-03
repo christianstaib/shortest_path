@@ -78,10 +78,6 @@ impl CHQueue {
             .map(|priority_term| priority_term.priority(v))
             .collect();
 
-        if priorities[2] != 0 {
-            println!("{:?}", priorities);
-        }
-
         priorities.iter().sum()
     }
 
@@ -98,4 +94,3 @@ impl CHQueue {
         }
     }
 }
-

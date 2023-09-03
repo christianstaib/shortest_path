@@ -10,19 +10,21 @@ pub struct DeletedNeighborsPriority {
 
 impl PriorityTerm for DeletedNeighborsPriority {
     fn update(&mut self, v: u32) {
-        // U --> v --> W
         self.deleted[v as usize] = true;
     }
 
     fn priority(&self, v: u32) -> i32 {
-        self.graph.read().unwrap().outgoing_edges[v as usize]
+        let graph = self.graph.read().unwrap();
+        let deleted_neighbors = graph.outgoing_edges[v as usize]
             .iter()
-            .filter(|vw_edge| self.deleted[vw_edge.target as usize] == true)
-            .count() as i32
-            + self.graph.read().unwrap().incoming_edges[v as usize]
+            .filter(|outgoing_edge| self.deleted[outgoing_edge.target as usize] == false)
+            .count()
+            + graph.incoming_edges[v as usize]
                 .iter()
-                .filter(|vw_edge| self.deleted[vw_edge.source as usize] == true)
-                .count() as i32
+                .filter(|incoming_edge| self.deleted[incoming_edge.source as usize] == false)
+                .count();
+
+        deleted_neighbors as i32
     }
 }
 

@@ -4,8 +4,8 @@ use crate::{bidirectional_graph::BidirectionalGraph, dijkstra_helper::DijkstraHe
 
 use std::{rc::Rc, sync::RwLock};
 
-use indicatif::{ProgressBar, ProgressIterator};
-use std::collections::HashMap;
+use crate::graph_cleaner::{remove_edge_to_self, removing_double_edges};
+use indicatif::ProgressBar;
 
 pub struct Contractor {
     pub graph: Rc<RwLock<BidirectionalGraph>>,
@@ -37,6 +37,8 @@ impl Contractor {
     }
 
     pub fn contract(&mut self) -> Vec<Edge> {
+        removing_double_edges(self.graph.clone());
+        remove_edge_to_self(self.graph.clone());
         println!("start contracting node");
         let outgoing_edges = self.graph.read().unwrap().outgoing_edges.clone();
         let incoming_edges = self.graph.read().unwrap().incoming_edges.clone();
@@ -64,7 +66,8 @@ impl Contractor {
             }
         }
 
-        self.removing_double_edges();
+        removing_double_edges(self.graph.clone());
+        remove_edge_to_self(self.graph.clone());
         self.removing_level_property();
 
         shortcuts
@@ -126,37 +129,6 @@ impl Contractor {
                 self.levels[edge.source as usize] > self.levels[edge.target as usize]
             });
         });
-    }
-
-    fn removing_double_edges(&mut self) {
-        println!("removing double nodes");
-        let mut graph = self.graph.write().unwrap();
-
-        for i in (0..graph.incoming_edges.len()).progress() {
-            let mut edge_map = HashMap::new();
-            for edge in &graph.incoming_edges[i] {
-                let edge_tuple = (edge.source, edge.target);
-                let current_cost = edge_map.get(&edge_tuple).unwrap_or(&u32::MAX);
-                if &edge.cost < current_cost {
-                    edge_map.insert(edge_tuple, edge.cost);
-                }
-            }
-            graph.incoming_edges[i]
-                .retain(|edge| edge.cost <= *edge_map.get(&(edge.source, edge.target)).unwrap());
-        }
-
-        for i in (0..graph.outgoing_edges.len()).progress() {
-            let mut edge_map = HashMap::new();
-            for edge in &graph.outgoing_edges[i] {
-                let edge_tuple = (edge.source, edge.target);
-                let current_cost = edge_map.get(&edge_tuple).unwrap_or(&u32::MAX);
-                if &edge.cost < current_cost {
-                    edge_map.insert(edge_tuple, edge.cost);
-                }
-            }
-            graph.outgoing_edges[i]
-                .retain(|edge| edge.cost <= *edge_map.get(&(edge.source, edge.target)).unwrap());
-        }
     }
 
     pub fn disconnect(&mut self, node_id: u32) {

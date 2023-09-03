@@ -90,7 +90,7 @@ fn test_route_correctness() {
     let mut times = Vec::new();
 
     let test_cases = common::test_file_reader::get_test_cases(TEST_FILE);
-    for _ in 0..10 {
+    for _ in 0..1_000 {
         for test in &test_cases {
             let before = Instant::now();
             let route = dijskstra.single_pair_shortest_path(test.source, test.target);
