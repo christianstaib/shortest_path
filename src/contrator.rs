@@ -95,8 +95,8 @@ impl Contractor {
                     if let Some(spare_cost) = shortcut.cost.checked_sub(edge.cost) {
                         let source_source_cost = dijkstra_helper
                             .single_pair_with_max_cost_without_node(
-                                edge.source,
                                 shortcut.source,
+                                edge.source,
                                 v,
                                 spare_cost,
                             );
