@@ -1,5 +1,5 @@
-use crate::bidirectional_graph::BidirectionalGraph;
-use crate::graph::Edge;
+use crate::graph::bidirectional_graph::BidirectionalGraph;
+use crate::graph::simple_graph::Edge;
 use std::{cmp::max, rc::Rc, sync::RwLock};
 
 use super::PriorityTerm;

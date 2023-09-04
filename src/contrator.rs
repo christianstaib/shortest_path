@@ -1,6 +1,6 @@
 use crate::ch_queue::CHQueue;
-use crate::graph::Edge;
-use crate::{bidirectional_graph::BidirectionalGraph, dijkstra_helper::DijkstraHelper};
+use crate::graph::simple_graph::Edge;
+use crate::{dijkstra_helper::DijkstraHelper, graph::bidirectional_graph::BidirectionalGraph};
 
 use std::{rc::Rc, sync::RwLock};
 
@@ -8,8 +8,8 @@ use crate::graph_cleaner::{remove_edge_to_self, removing_double_edges};
 use indicatif::ProgressBar;
 
 pub struct Contractor {
-    pub graph: Rc<RwLock<BidirectionalGraph>>,
-    pub queue: CHQueue,
+    graph: Rc<RwLock<BidirectionalGraph>>,
+    queue: CHQueue,
     levels: Vec<u32>,
 }
 
@@ -75,7 +75,69 @@ impl Contractor {
 
     fn contract_node(&mut self, v: u32) -> Vec<Edge> {
         // U --> v --> W
+        let shortcuts = self.naive_shortcuts(v);
 
+        let shortcuts = self.remove_unnecessary_shortcuts(shortcuts, v);
+
+        self.add_shortcuts(&shortcuts);
+        self.disconnect(v);
+        shortcuts
+    }
+
+    fn remove_unnecessary_shortcuts(&mut self, shortcuts: Vec<Edge>, v: u32) -> Vec<Edge> {
+        let dijkstra_helper = DijkstraHelper::new(self.graph.clone());
+        let mut new_shortcuts: Vec<Edge> = Vec::new();
+
+        for shortcut in &shortcuts {
+            let alternative_cost = shortcuts
+                .iter()
+                .map(|edge| {
+                    if let Some(spare_cost) = shortcut.cost.checked_sub(edge.cost) {
+                        let source_source_cost = dijkstra_helper
+                            .single_pair_with_max_cost_without_node(
+                                edge.source,
+                                shortcut.source,
+                                v,
+                                spare_cost,
+                            );
+
+                        let target_target_cost = dijkstra_helper
+                            .single_pair_with_max_cost_without_node(
+                                edge.target,
+                                shortcut.target,
+                                v,
+                                spare_cost,
+                            );
+
+                        if let Some(target_target_cost) = target_target_cost {
+                            if let Some(source_source_cost) = source_source_cost {
+                                return source_source_cost + edge.cost + target_target_cost;
+                            }
+                        }
+                    }
+                    u32::MAX
+                })
+                .min();
+
+            if let Some(alternative_cost) = alternative_cost {
+                if alternative_cost < shortcut.cost {
+                    continue;
+                }
+            }
+            new_shortcuts.push(shortcut.clone());
+        }
+        new_shortcuts
+    }
+
+    fn add_shortcuts(&mut self, shortcuts: &Vec<Edge>) {
+        let mut graph = self.graph.write().unwrap();
+        for shortcut in shortcuts {
+            graph.outgoing_edges[shortcut.source as usize].push(shortcut.clone());
+            graph.incoming_edges[shortcut.target as usize].push(shortcut.clone());
+        }
+    }
+
+    fn naive_shortcuts(&mut self, v: u32) -> Vec<Edge> {
         let dijkstra_helper = DijkstraHelper::new(self.graph.clone());
 
         let mut shortcuts = Vec::new();
@@ -104,14 +166,10 @@ impl Contractor {
                         target: w,
                         cost,
                     };
-                    let mut graph = self.graph.write().unwrap();
-                    graph.outgoing_edges[u as usize].push(shortcut.clone());
-                    graph.incoming_edges[w as usize].push(shortcut.clone());
                     shortcuts.push(shortcut.clone());
                 }
             }
         }
-        self.disconnect(v);
         shortcuts
     }
 

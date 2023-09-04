@@ -1,5 +1,5 @@
-use crate::bidirectional_graph::BidirectionalGraph;
 use crate::binary_heap::MinimumItem;
+use crate::graph::bidirectional_graph::BidirectionalGraph;
 use ahash::RandomState;
 use std::{collections::HashMap, sync::RwLock};
 

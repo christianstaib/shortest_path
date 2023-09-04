@@ -1,4 +1,4 @@
-use route_planner::graph::*;
+use route_planner::graph::simple_graph::*;
 
 use indicatif::ProgressIterator;
 

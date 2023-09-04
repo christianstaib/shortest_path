@@ -1,4 +1,4 @@
-use crate::bidirectional_graph::BidirectionalGraph;
+use crate::graph::bidirectional_graph::BidirectionalGraph;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::sync::RwLock;
@@ -26,26 +26,27 @@ pub trait PriorityTerm {
 pub struct CHQueue {
     graph: Rc<RwLock<BidirectionalGraph>>,
     queue: BinaryHeap<CHState>,
-    priority_terms: Vec<Box<dyn PriorityTerm>>,
+    priority_terms: Vec<(i32, Box<dyn PriorityTerm>)>,
 }
 
 impl CHQueue {
     pub fn new(graph: Rc<RwLock<BidirectionalGraph>>) -> Self {
         let queue = BinaryHeap::new();
-        let mut priority_terms = Vec::new();
-        priority_terms
-            .push(Box::new(EdgeDifferencePriority::new(graph.clone())) as Box<dyn PriorityTerm>);
-        priority_terms
-            .push(Box::new(CostOfQueriesPriority::new(graph.clone())) as Box<dyn PriorityTerm>);
-        priority_terms
-            .push(Box::new(DeletedNeighborsPriority::new(graph.clone())) as Box<dyn PriorityTerm>);
+        let priority_terms = Vec::new();
         let mut queue = Self {
-            graph,
+            graph: graph.clone(),
             queue,
             priority_terms,
         };
+        queue.register(1, DeletedNeighborsPriority::new(graph.clone()));
+        queue.register(1, CostOfQueriesPriority::new(graph.clone()));
+        queue.register(1, EdgeDifferencePriority::new(graph.clone()));
         queue.initialize();
         queue
+    }
+
+    fn register(&mut self, weight: i32, term: impl PriorityTerm + 'static) {
+        self.priority_terms.push((weight, Box::new(term)));
     }
 
     pub fn lazy_pop(&mut self) -> Option<u32> {
@@ -68,23 +69,22 @@ impl CHQueue {
     fn update_priority(&mut self, v: u32) {
         self.priority_terms
             .iter_mut()
-            .for_each(|priority_term| priority_term.update(v));
+            .for_each(|priority_term| priority_term.1.update(v));
     }
 
     pub fn get_priority(&self, v: u32) -> i32 {
         let priorities: Vec<i32> = self
             .priority_terms
             .iter()
-            .map(|priority_term| priority_term.priority(v))
+            .map(|priority_term| priority_term.0 * priority_term.1.priority(v))
             .collect();
 
         priorities.iter().sum()
     }
 
     fn initialize(&mut self) {
-        let mut order: Vec<u32> = (0..self.graph.read().unwrap().outgoing_edges.len())
-            .map(|x| x as u32)
-            .collect();
+        let graph = self.graph.read().unwrap();
+        let mut order: Vec<u32> = (0..graph.outgoing_edges.len()).map(|x| x as u32).collect();
         order.shuffle(&mut thread_rng());
         for &v in order.iter().progress() {
             self.queue.push(CHState {

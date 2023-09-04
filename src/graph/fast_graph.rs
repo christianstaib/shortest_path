@@ -1,4 +1,4 @@
-use crate::graph::*;
+use super::simple_graph::Edge;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct FastEdge {

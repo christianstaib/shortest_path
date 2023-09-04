@@ -6,10 +6,10 @@ use std::{
 use ahash::RandomState;
 
 use crate::{
-    bidirectional_graph::BidirectionalGraph,
     binary_heap::MinimumItem,
-    fast_graph::FastGraph,
-    graph::{Edge, Route},
+    graph::bidirectional_graph::BidirectionalGraph,
+    graph::fast_graph::FastGraph,
+    graph::simple_graph::{Edge, Route},
 };
 
 const CAPACITY: usize = 5_000;

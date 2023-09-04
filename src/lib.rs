@@ -1,9 +1,7 @@
-pub mod bidirectional_graph;
 pub mod binary_heap;
 pub mod ch_dijkstra;
 pub mod ch_queue;
 pub mod contrator;
 mod dijkstra_helper;
-pub mod fast_graph;
 pub mod graph;
 mod graph_cleaner;

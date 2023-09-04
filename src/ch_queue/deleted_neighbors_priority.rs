@@ -1,4 +1,4 @@
-use crate::bidirectional_graph::BidirectionalGraph;
+use crate::graph::bidirectional_graph::BidirectionalGraph;
 use std::{rc::Rc, sync::RwLock};
 
 use super::PriorityTerm;

@@ -1,4 +1,4 @@
-use crate::graph::*;
+use super::simple_graph::{Edge, Graph};
 
 #[derive(Clone)]
 pub struct BidirectionalGraph {

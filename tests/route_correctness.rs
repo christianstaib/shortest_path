@@ -1,15 +1,15 @@
 use itertools::Itertools;
 use rand::Rng;
-use route_planner::graph::Edge;
+use route_planner::graph::simple_graph::Edge;
 use std::cmp::max;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::time::{Duration, Instant};
 
 use common::fmi_reader::GraphFileReader;
-use route_planner::bidirectional_graph::BidirectionalGraph;
 use route_planner::ch_dijkstra::ChDijsktra;
 use route_planner::contrator::Contractor;
+use route_planner::graph::bidirectional_graph::BidirectionalGraph;
 
 use crate::common::test_file_reader::TestRoute;
 mod common;
