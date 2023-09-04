@@ -1,5 +1,5 @@
-use itertools::Itertools;
 use rand::Rng;
+use route_planner::dijkstra::ch_dijkstra::ChDijsktra;
 use route_planner::graph::simple_graph::Edge;
 use std::cmp::max;
 use std::fs::File;
@@ -7,7 +7,6 @@ use std::io::{self, BufRead};
 use std::time::{Duration, Instant};
 
 use common::fmi_reader::GraphFileReader;
-use route_planner::ch_dijkstra::ChDijsktra;
 use route_planner::contrator::Contractor;
 use route_planner::graph::bidirectional_graph::BidirectionalGraph;
 
@@ -18,7 +17,7 @@ const GRAPH_FILE: &str = "tests/data/stgtregbz.fmi";
 const TEST_FILE: &str = "tests/data/stgtregbz_test.txt";
 
 //#[test]
-fn test_usa_speed() {
+fn _test_usa_speed() {
     let file = File::open("tests/data/USA-road-d.USA.gr").unwrap();
     let reader = io::BufReader::new(file);
     let mut graph = BidirectionalGraph::new();

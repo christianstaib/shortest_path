@@ -6,14 +6,8 @@ use std::sync::RwLock;
 use indicatif::ProgressIterator;
 use std::{collections::BinaryHeap, rc::Rc};
 
-mod ch_state;
-mod cost_of_queries_priority;
-mod deleted_neighbors_priority;
-mod edge_difference_priority;
-use ch_state::CHState;
-
-use self::{
-    cost_of_queries_priority::CostOfQueriesPriority,
+use super::{
+    ch_state::CHState, cost_of_queries_priority::CostOfQueriesPriority,
     deleted_neighbors_priority::DeletedNeighborsPriority,
     edge_difference_priority::EdgeDifferencePriority,
 };

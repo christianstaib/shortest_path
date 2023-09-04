@@ -1,7 +1,7 @@
 use crate::graph::bidirectional_graph::BidirectionalGraph;
 use std::{rc::Rc, sync::RwLock};
 
-use super::PriorityTerm;
+use super::ch_queue::PriorityTerm;
 
 pub struct DeletedNeighborsPriority {
     graph: Rc<RwLock<BidirectionalGraph>>,

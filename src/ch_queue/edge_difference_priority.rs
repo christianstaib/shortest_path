@@ -5,7 +5,7 @@ use std::{collections::HashMap, sync::RwLock};
 
 use std::{collections::BinaryHeap, rc::Rc};
 
-use super::PriorityTerm;
+use super::ch_queue::PriorityTerm;
 
 pub struct EdgeDifferencePriority {
     graph: Rc<RwLock<BidirectionalGraph>>,

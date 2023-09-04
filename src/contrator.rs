@@ -1,6 +1,6 @@
-use crate::ch_queue::CHQueue;
+use crate::graph::bidirectional_graph::BidirectionalGraph;
 use crate::graph::simple_graph::Edge;
-use crate::{dijkstra_helper::DijkstraHelper, graph::bidirectional_graph::BidirectionalGraph};
+use crate::{ch_queue::ch_queue::CHQueue, dijkstra::dijkstra_helper::DijkstraHelper};
 
 use std::{rc::Rc, sync::RwLock};
 
