@@ -1,4 +1,5 @@
 use crate::graph::bidirectional_graph::BidirectionalGraph;
+
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::sync::RwLock;
@@ -7,15 +8,10 @@ use indicatif::ProgressIterator;
 use std::{collections::BinaryHeap, rc::Rc};
 
 use super::{
-    ch_state::CHState, cost_of_queries_priority::CostOfQueriesPriority,
+    cost_of_queries_priority::CostOfQueriesPriority,
     deleted_neighbors_priority::DeletedNeighborsPriority,
-    edge_difference_priority::EdgeDifferencePriority,
+    edge_difference_priority::EdgeDifferencePriority, priority_term::PriorityTerm, state::CHState,
 };
-
-pub trait PriorityTerm {
-    fn priority(&self, v: u32) -> i32;
-    fn update(&mut self, v: u32);
-}
 
 pub struct CHQueue {
     graph: Rc<RwLock<BidirectionalGraph>>,
@@ -46,12 +42,8 @@ impl CHQueue {
     pub fn lazy_pop(&mut self) -> Option<u32> {
         while let Some(state) = self.queue.pop() {
             let v = state.node_id;
-            // lazy update
             if self.get_priority(v) > state.priority {
-                self.queue.push(CHState {
-                    priority: self.get_priority(v),
-                    node_id: v,
-                });
+                self.queue.push(CHState::new(self.get_priority(v), v));
                 continue;
             }
             self.update_priority(v);

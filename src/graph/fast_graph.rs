@@ -12,10 +12,10 @@ pub struct FastGraph {
 }
 
 impl FastGraph {
-    pub fn new(edges: &Vec<Edge>) -> Self {
-        let mut edges = edges.clone();
+    pub fn new(edges: &[Edge]) -> Self {
         let mut edges_start_at: Vec<u32> = vec![0; edges.len() + 1];
 
+        let mut edges = edges.to_vec();
         // temporarrly adding a node in order to generate the list
         edges.push(Edge {
             source: edges.len() as u32,

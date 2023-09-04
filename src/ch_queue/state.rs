@@ -6,6 +6,12 @@ pub struct CHState {
     pub node_id: u32,
 }
 
+impl CHState {
+    pub fn new(priority: i32, node_id: u32) -> Self {
+        Self { priority, node_id }
+    }
+}
+
 // The priority queue depends on `Ord`.
 // Explicitly implement the trait so the queue becomes a min-heap
 // instead of a max-heap.

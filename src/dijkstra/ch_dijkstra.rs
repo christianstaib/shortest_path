@@ -21,22 +21,19 @@ pub struct ChDijsktra {
 
 impl ChDijsktra {
     pub fn new(graph: BidirectionalGraph) -> Self {
-        let forward_edges = graph.outgoing_edges.iter().flatten().cloned().collect();
+        let forward_edges: Vec<Edge> = graph.outgoing_edges.iter().flatten().cloned().collect();
         let forward_graph = FastGraph::new(&forward_edges);
+
+        let backward_edges: Vec<Edge> = graph
+            .incoming_edges
+            .iter()
+            .flatten()
+            .map(|edge| edge.invert())
+            .collect();
+        let backward_graph = FastGraph::new(&backward_edges);
         ChDijsktra {
             forward_graph,
-            backward_graph: FastGraph::new(
-                &graph
-                    .incoming_edges
-                    .iter()
-                    .flatten()
-                    .map(|edge| Edge {
-                        source: edge.target,
-                        target: edge.source,
-                        cost: edge.cost,
-                    })
-                    .collect(),
-            ),
+            backward_graph,
         }
     }
 

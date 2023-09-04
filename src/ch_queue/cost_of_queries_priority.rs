@@ -2,7 +2,7 @@ use crate::graph::bidirectional_graph::BidirectionalGraph;
 use crate::graph::simple_graph::Edge;
 use std::{cmp::max, rc::Rc, sync::RwLock};
 
-use super::ch_queue::PriorityTerm;
+use super::priority_term::PriorityTerm;
 
 pub struct CostOfQueriesPriority {
     graph: Rc<RwLock<BidirectionalGraph>>,

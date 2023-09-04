@@ -23,6 +23,16 @@ pub struct Route {
     pub route: Vec<u32>,
 }
 
+impl Edge {
+    pub fn invert(&self) -> Self {
+        Edge {
+            source: self.target,
+            target: self.source,
+            cost: self.cost,
+        }
+    }
+}
+
 impl Default for Graph {
     fn default() -> Self {
         Graph::new()
