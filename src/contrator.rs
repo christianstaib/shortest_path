@@ -1,7 +1,6 @@
-use crate::graph::bidirectional_graph::BidirectionalGraph;
 use crate::graph::simple_graph::Edge;
 use crate::shortcut_generator::ShortcutGenerator;
-use crate::{ch_queue::queue::CHQueue, dijkstra::dijkstra_helper::DijkstraHelper};
+use crate::{ch_queue::queue::CHQueue, graph::bidirectional_graph::BidirectionalGraph};
 
 use std::{rc::Rc, sync::RwLock};
 
@@ -78,7 +77,7 @@ impl Contractor {
         // U --> v --> W
         let shortcut_generator = ShortcutGenerator::new(self.graph.clone());
         let shortcuts = shortcut_generator.naive_shortcuts(v);
-        let shortcuts = shortcut_generator.remove_unnecessary_shortcuts(shortcuts, v);
+        //let shortcuts = shortcut_generator.remove_unnecessary_shortcuts(shortcuts, v);
         self.add_shortcuts(&shortcuts);
         self.disconnect(v);
         shortcuts

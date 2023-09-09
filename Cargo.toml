@@ -13,10 +13,8 @@ rayon = "1.7"
 indicatif = "0.17"
 ahash = "0.8"
 itertools = "0.9"
+log = "0.4"
 
 [dev-dependencies]
 criterion = { version = "0.4", features = ["html_reports"] }
 
-[[bench]]
-name = "route_correctness"
-harness = false

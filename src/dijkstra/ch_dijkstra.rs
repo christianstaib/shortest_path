@@ -31,7 +31,8 @@ impl ChDijsktra {
             .map(|edge| edge.invert())
             .collect();
         let backward_graph = FastGraph::new(&backward_edges);
-        ChDijsktra {
+
+        Self {
             forward_graph,
             backward_graph,
         }

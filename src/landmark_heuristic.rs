@@ -1,55 +1,78 @@
-use crate::dijkstra::*;
-use crate::graph::*;
-use crate::node_map::*;
+use log;
+use std::rc::Rc;
+use std::sync::RwLock;
+
+use crate::dijkstra::dijkstra_helper::DijkstraHelper;
+use crate::graph::bidirectional_graph::BidirectionalGraph;
+use crate::landmark::Landmark;
 use indicatif::ProgressIterator;
 use rand::Rng;
 
 pub struct LandmarkHeuristic {
-    cost_to: Vec<Vec<u32>>,
-    cost_from: Vec<Vec<u32>>,
+    landmarks: Vec<Landmark>,
 }
 
 impl LandmarkHeuristic {
-    pub fn new(graph: &Graph, resolution: usize) -> Self {
-        let dijkstra = Dijkstra::new(graph.clone());
-        let inverted_dijkstra = Dijkstra::new(graph.clone_and_invert());
+    pub fn new(graph: &BidirectionalGraph, resolution: u32) -> Self {
+        let graph = RwLock::new(graph.clone());
+        let graph = Rc::new(graph);
+        let num_vecs = graph.read().unwrap().outgoing_edges.len();
+        let dijkstra = DijkstraHelper::new(graph);
 
         let mut rng = rand::thread_rng();
-        let mut single_source_cost: Vec<Vec<u32>> = Vec::new();
-        let mut single_destination_cost: Vec<Vec<u32>> = Vec::new();
-        let map = NodeMap::new(&graph, resolution);
-        for area in map
-            .map
-            .iter()
-            .flatten()
-            .progress_count(map.map.len().pow(2) as u64)
-        {
-            if !area.is_empty() {
-                let landmark = area[rng.gen_range(0..area.len())];
-                single_source_cost.push(inverted_dijkstra.single_source_shortest_path(landmark));
-                single_destination_cost.push(dijkstra.single_source_shortest_path(landmark));
-            }
-        }
 
-        LandmarkHeuristic {
-            cost_to: single_source_cost,
-            cost_from: single_destination_cost,
-        }
+        log::info!("getting heuristic");
+        let landmarks = (0..resolution)
+            .progress()
+            .map(|_| {
+                let landmark = rng.gen_range(0..num_vecs) as u32;
+                let cost_to = dijkstra.single_source(landmark);
+                let cost_from = dijkstra.single_target(landmark);
+                Landmark::new(landmark, cost_to, cost_from)
+            })
+            .collect();
+
+        Self { landmarks }
     }
 
-    pub fn distance(&self, source_id: usize, target_id: usize) -> u32 {
-        let max_cost_to = self
-            .cost_to
+    pub fn tune(&self, source: u32, target: u32) -> Self {
+        let mut landmarks: Vec<Landmark> = self
+            .landmarks
             .iter()
-            .map(|cost_to| cost_to[source_id] as i32 - cost_to[target_id] as i32)
-            .max()
-            .unwrap_or(0);
-        let max_cost_from = self
-            .cost_from
+            .cloned()
+            .filter(|landmark| {
+                landmark.lower_bound(source, target).is_some()
+                    & landmark.upper_bound(source, target).is_some()
+            })
+            .collect();
+        landmarks.sort_by_key(|landmark| {
+            landmark.upper_bound(source, target).unwrap()
+                - landmark.lower_bound(source, target).unwrap()
+        });
+
+        let landmarks = landmarks[0..10].to_vec();
+
+        Self { landmarks }
+    }
+
+    pub fn is_reachable(&self, source: u32, target: u32) -> bool {
+        self.landmarks
             .iter()
-            .map(|cost_from| cost_from[target_id] as i32 - cost_from[source_id] as i32)
+            .find(|landmark| landmark.is_reachable(source, target))
+            .is_some()
+    }
+
+    pub fn upper_bound(&self, source: u32, target: u32) -> Option<u32> {
+        self.landmarks
+            .iter()
+            .filter_map(|landmark| landmark.upper_bound(source, target))
+            .min()
+    }
+
+    pub fn lower_bound(&self, source: u32, target: u32) -> Option<u32> {
+        self.landmarks
+            .iter()
+            .filter_map(|landmark| landmark.lower_bound(source, target))
             .max()
-            .unwrap_or(0);
-        max_cost_to.max(max_cost_from) as u32
     }
 }

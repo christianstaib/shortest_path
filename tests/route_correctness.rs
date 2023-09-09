@@ -1,69 +1,68 @@
 use rand::Rng;
 use route_planner::dijkstra::ch_dijkstra::ChDijsktra;
-use route_planner::graph::simple_graph::Edge;
-use std::cmp::max;
-use std::fs::File;
-use std::io::{self, BufRead};
+use route_planner::dijkstra::dijkstra_helper::DijkstraHelper;
+use route_planner::landmark_heuristic::LandmarkHeuristic;
+use std::rc::Rc;
+use std::sync::RwLock;
 use std::time::{Duration, Instant};
 
 use common::fmi_reader::GraphFileReader;
 use route_planner::contrator::Contractor;
 use route_planner::graph::bidirectional_graph::BidirectionalGraph;
 
-use crate::common::test_file_reader::TestRoute;
 mod common;
 
 const GRAPH_FILE: &str = "tests/data/stgtregbz.fmi";
 const TEST_FILE: &str = "tests/data/stgtregbz_test.txt";
 
-//#[test]
-fn _test_usa_speed() {
-    let file = File::open("tests/data/USA-road-d.USA.gr").unwrap();
-    let reader = io::BufReader::new(file);
-    let mut graph = BidirectionalGraph::new();
-    let mut num_nodes = 0;
+#[test]
+fn test_landmark() {
+    let graph_file_reader = GraphFileReader::new();
+    let graph = graph_file_reader.from_file(GRAPH_FILE);
+    let graph = BidirectionalGraph::from_graph(&graph);
+    let number_nodes = graph.outgoing_edges.len();
 
-    reader.lines().for_each(|line| {
-        let line = line.unwrap();
-        let mut line = line.split_whitespace();
-        line.next();
-        let source = line.next().unwrap().parse().unwrap();
-        let target = line.next().unwrap().parse().unwrap();
-        let cost = line.next().unwrap().parse().unwrap();
-        graph.add_edge(Edge {
-            source,
-            target,
-            cost,
-        });
+    let i = 150;
+    let heuristic = LandmarkHeuristic::new(&graph, i);
 
-        num_nodes = max(num_nodes, max(source, target));
-    });
-
-    let before = Instant::now();
-    let mut contractor = Contractor::new(graph);
-    contractor.contract();
-    println!("contracting graph took {:?}", before.elapsed());
-    let graph = contractor.get_graph().unwrap();
-    let dijskstra = ChDijsktra::new(graph);
+    let graph = RwLock::new(graph);
+    let graph = Rc::new(graph);
+    let dijskstra = DijkstraHelper::new(graph);
 
     let mut rng = rand::thread_rng();
-    let times: Vec<Duration> = (0..1_000)
-        .map(|_| {
-            let test = TestRoute {
-                source: rng.gen_range(0..num_nodes),
-                target: rng.gen_range(0..num_nodes),
-                cost: 0,
-            };
-            let before = Instant::now();
-            dijskstra.single_pair_shortest_path(test.source, test.target);
-            before.elapsed()
-        })
-        .collect();
+    let mut lower_percentages = Vec::new();
+    let mut upper_percentages = Vec::new();
 
-    println!(
-        "average time was {:?}",
-        times.iter().sum::<Duration>() / times.len() as u32
-    );
+    for _ in 0..1000 {
+        let source = rng.gen_range(0..number_nodes) as u32;
+        let target = rng.gen_range(0..number_nodes) as u32;
+        //let heuristic = heuristic_org.tune(source, target);
+        let lower_bound = heuristic.lower_bound(source, target).unwrap_or(0);
+        let true_cost = dijskstra.single_pair(source, target).unwrap_or(0);
+        let upper_bound = heuristic.upper_bound(source, target).unwrap_or(0);
+
+        let mut lower_percentage = 100.0 - (lower_bound as f32 / (true_cost as f32 / 100.0));
+        if lower_percentage.is_nan() {
+            lower_percentage = 0.0;
+        }
+        lower_percentages.push(lower_percentage);
+
+        let mut upper_percentage = (upper_bound as f32 / (true_cost as f32 / 100.0)) - 100.0;
+        if upper_percentage.is_nan() {
+            upper_percentage = 0.0;
+        }
+        upper_percentages.push(upper_percentage);
+
+        assert!(lower_bound <= true_cost);
+        assert!(true_cost <= upper_bound);
+    }
+
+    let lower: f32 = lower_percentages.iter().sum();
+    let lower = lower / (lower_percentages.len() as f32);
+
+    let upper: f32 = upper_percentages.iter().sum();
+    let upper = upper / (upper_percentages.len() as f32);
+    println!("{} {} {}", i, lower, upper);
 }
 
 #[test]
@@ -106,36 +105,6 @@ fn test_route_correctness() {
                 "cost {} -> {} should be {} but is {}",
                 test.source, test.target, test.cost, cost
             );
-
-            //for (prev, next) in route.route.into_iter().tuples() {
-            //    if shortcuts
-            //        .iter()
-            //        .find(|edge| (edge.source == prev) & (edge.target == next))
-            //        .is_some()
-            //    {
-            //        println!("{} {} is shortcut", prev, next);
-            //    } else {
-            //        println!("{} {} is no shortcut", prev, next);
-            //    }
-            //}
-
-            // // test sum of edge cost
-            // let mut all_cost = 0;
-            // for edge in &route.route {
-            //     all_cost += edge.cost;
-            // }
-            // assert_eq!(
-            //     all_cost as i32, test.cost,
-            //     "sum of edges costs is not correct"
-            // );
-
-            // test edges are continuous
-            // for edge_window in route.route.windows(2) {
-            //     assert_eq!(
-            //         edge_window[0].target, edge_window[1].source,
-            //         "current edges source doesn't match previous edges target"
-            //     );
-            // }
         }
     }
 
