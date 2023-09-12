@@ -1,12 +1,14 @@
+use crate::heuristic::landmark::Landmark;
 use log;
 use std::rc::Rc;
 use std::sync::RwLock;
 
 use crate::dijkstra::dijkstra_helper::DijkstraHelper;
 use crate::graph::bidirectional_graph::BidirectionalGraph;
-use crate::landmark::Landmark;
 use indicatif::ProgressIterator;
 use rand::Rng;
+
+use super::heuristic::Heuristic;
 
 pub struct LandmarkHeuristic {
     landmarks: Vec<Landmark>,
@@ -54,22 +56,26 @@ impl LandmarkHeuristic {
 
         Self { landmarks }
     }
+}
 
-    pub fn is_reachable(&self, source: u32, target: u32) -> bool {
-        self.landmarks
-            .iter()
-            .find(|landmark| landmark.is_reachable(source, target))
-            .is_some()
+impl Heuristic for LandmarkHeuristic {
+    fn is_reachable(&self, source: u32, target: u32) -> Option<bool> {
+        Some(
+            self.landmarks
+                .iter()
+                .find(|landmark| landmark.is_reachable(source, target))
+                .is_some(),
+        )
     }
 
-    pub fn upper_bound(&self, source: u32, target: u32) -> Option<u32> {
+    fn upper_bound(&self, source: u32, target: u32) -> Option<u32> {
         self.landmarks
             .iter()
             .filter_map(|landmark| landmark.upper_bound(source, target))
             .min()
     }
 
-    pub fn lower_bound(&self, source: u32, target: u32) -> Option<u32> {
+    fn lower_bound(&self, source: u32, target: u32) -> Option<u32> {
         self.landmarks
             .iter()
             .filter_map(|landmark| landmark.lower_bound(source, target))

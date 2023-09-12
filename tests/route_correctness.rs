@@ -1,7 +1,8 @@
 use rand::Rng;
 use route_planner::dijkstra::ch_dijkstra::ChDijsktra;
 use route_planner::dijkstra::dijkstra_helper::DijkstraHelper;
-use route_planner::landmark_heuristic::LandmarkHeuristic;
+use route_planner::heuristic::heuristic::Heuristic;
+use route_planner::heuristic::landmark_heuristic::LandmarkHeuristic;
 use std::rc::Rc;
 use std::sync::RwLock;
 use std::time::{Duration, Instant};
