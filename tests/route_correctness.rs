@@ -1,4 +1,5 @@
 use rand::Rng;
+use route_planner::contraction::contrator::Contractor;
 use route_planner::dijkstra::ch_dijkstra::ChDijsktra;
 use route_planner::dijkstra::dijkstra_helper::DijkstraHelper;
 use route_planner::heuristic::heuristic::Heuristic;
@@ -8,7 +9,6 @@ use std::sync::RwLock;
 use std::time::{Duration, Instant};
 
 use common::fmi_reader::GraphFileReader;
-use route_planner::contrator::Contractor;
 use route_planner::graph::bidirectional_graph::BidirectionalGraph;
 
 mod common;

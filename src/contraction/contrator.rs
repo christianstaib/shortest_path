@@ -1,11 +1,12 @@
+use crate::graph::bidirectional_graph::BidirectionalGraph;
 use crate::graph::simple_graph::Edge;
-use crate::shortcut_generator::ShortcutGenerator;
-use crate::{ch_queue::queue::CHQueue, graph::bidirectional_graph::BidirectionalGraph};
 
 use std::{rc::Rc, sync::RwLock};
 
 use crate::graph_cleaner::{remove_edge_to_self, removing_double_edges};
 use indicatif::ProgressBar;
+
+use super::{queue::CHQueue, shortcut_generator::ShortcutGenerator};
 
 pub struct Contractor {
     graph: Rc<RwLock<BidirectionalGraph>>,

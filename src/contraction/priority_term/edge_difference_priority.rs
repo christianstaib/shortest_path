@@ -1,5 +1,5 @@
+use crate::contraction::shortcut_generator::ShortcutGenerator;
 use crate::graph::bidirectional_graph::BidirectionalGraph;
-use crate::shortcut_generator::ShortcutGenerator;
 use std::sync::RwLock;
 
 use std::rc::Rc;
