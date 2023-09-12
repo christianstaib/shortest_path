@@ -4,11 +4,12 @@ use std::sync::RwLock;
 
 use std::rc::Rc;
 
+use super::priority_terms::PriorityTerm;
+
 pub struct EdgeDifferencePriority {
     graph: Rc<RwLock<BidirectionalGraph>>,
 }
 
-use super::priority_term::PriorityTerm;
 impl PriorityTerm for EdgeDifferencePriority {
     fn priority(&self, v: u32) -> i32 {
         let shortcut_generator = ShortcutGenerator::new(self.graph.clone());

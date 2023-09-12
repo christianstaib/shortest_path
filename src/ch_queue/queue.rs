@@ -8,9 +8,12 @@ use indicatif::ProgressIterator;
 use std::{collections::BinaryHeap, rc::Rc};
 
 use super::{
-    cost_of_queries_priority::CostOfQueriesPriority,
-    deleted_neighbors_priority::DeletedNeighborsPriority,
-    edge_difference_priority::EdgeDifferencePriority, priority_term::PriorityTerm, state::CHState,
+    priority_term::{
+        cost_of_queries_priority::CostOfQueriesPriority,
+        deleted_neighbors_priority::DeletedNeighborsPriority,
+        edge_difference_priority::EdgeDifferencePriority, priority_terms::PriorityTerm,
+    },
+    state::CHState,
 };
 
 pub struct CHQueue {
