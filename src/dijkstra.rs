@@ -2,10 +2,10 @@ use crate::graph::*;
 use crate::queue::*;
 use std::collections::BinaryHeap;
 
-pub fn dijkstra(graph: &Graph, from_node_id: usize, to_node_id: usize) -> Vec<Option<usize>> {
+pub fn dijkstra(graph: &Graph, from_node_id: usize, to_node_id: usize) -> Vec<u32> {
     let mut queue: BinaryHeap<State> = BinaryHeap::with_capacity(4_000_000);
 
-    let mut edge_from_predecessor = vec![None; graph.nodes.len()];
+    let mut edge_from_predecessor = vec![u32::MAX; graph.nodes.len()];
     let mut node_cost: Vec<u32> = vec![u32::MAX; graph.nodes.len()];
     let mut is_expanded: Vec<bool> = vec![false; graph.nodes.len()];
 
@@ -15,8 +15,7 @@ pub fn dijkstra(graph: &Graph, from_node_id: usize, to_node_id: usize) -> Vec<Op
         node_id: from_node_id,
     });
 
-    while !queue.is_empty() {
-        let state = queue.pop().unwrap();
+    while let Some(state) = queue.pop() {
         if is_expanded[state.node_id] {
             continue;
         }
@@ -25,19 +24,20 @@ pub fn dijkstra(graph: &Graph, from_node_id: usize, to_node_id: usize) -> Vec<Op
         }
         is_expanded[state.node_id] = true;
 
-        for edge_id in graph.edges_start_at[state.node_id]..graph.edges_start_at[state.node_id + 1]
-        {
-            let edge = &graph.edges[edge_id as usize];
-            let alternative_cost = node_cost[state.node_id] + edge.cost;
-            if alternative_cost < node_cost[edge.target_id] {
-                edge_from_predecessor[edge.target_id] = Some(edge_id as usize);
-                node_cost[edge.target_id] = alternative_cost;
-                queue.push(State {
-                    node_cost: alternative_cost,
-                    node_id: edge.target_id,
-                });
-            }
-        }
+        (graph.edges_start_at[state.node_id]..graph.edges_start_at[state.node_id + 1]).for_each(
+            |edge_id| {
+                let edge = &graph.edges[edge_id as usize];
+                let alternative_cost = node_cost[state.node_id] + edge.cost;
+                if alternative_cost < node_cost[edge.target_id] {
+                    edge_from_predecessor[edge.target_id] = edge_id;
+                    node_cost[edge.target_id] = alternative_cost;
+                    queue.push(State {
+                        node_cost: alternative_cost,
+                        node_id: edge.target_id,
+                    });
+                }
+            },
+        );
     }
 
     edge_from_predecessor

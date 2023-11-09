@@ -30,23 +30,23 @@ fn main() {
         let start_main = Instant::now();
         let used_edges = dijkstra(&graph, test.from, test.to);
         let end_main = start_main.elapsed();
-        let route = get_route(&graph, test.from, test.to, used_edges);
+        // let route = get_route(&graph, test.from, test.to, used_edges);
 
-        match route {
-            Some(route) => {
-                let cost = route.cost as i32;
-                println!(
-                    "{:>8} -> {:>8} diff: {:01}, time: {:?}",
-                    test.from,
-                    test.to,
-                    cost as i32 - test.cost as i32,
-                    end_main
-                );
-            }
-            None => {
-                println!("no route found");
-            }
-        }
+        // match route {
+        //     Some(route) => {
+        //         let cost = route.cost as i32;
+        //         println!(
+        //             "{:>8} -> {:>8} diff: {:01}, time: {:?}",
+        //             test.from,
+        //             test.to,
+        //             cost as i32 - test.cost as i32,
+        //             end_main
+        //         );
+        //     }
+        //     None => {
+        //         println!("no route found");
+        //     }
+        // }
 
         times.push(end_main);
     }
