@@ -19,7 +19,7 @@ pub struct Node {
 pub struct Graph {
     pub nodes: Vec<Node>,
     pub edges: Vec<Edge>,
-    pub edges_start_at: Vec<usize>,
+    pub edges_start_at: Vec<u32>,
 }
 
 impl Graph {
@@ -27,7 +27,7 @@ impl Graph {
         let file = File::open(filename).unwrap();
         let reader = io::BufReader::new(file);
 
-        let mut lines = reader.lines().skip(SKIP_LINES);
+        let mut lines = reader.lines();
         let number_of_nodes: usize = lines.by_ref().next().unwrap().unwrap().parse().unwrap();
         let number_of_edges: usize = lines.by_ref().next().unwrap().unwrap().parse().unwrap();
 
@@ -38,10 +38,10 @@ impl Graph {
                 let node_line = node_line.unwrap();
                 let mut values = node_line.split_whitespace();
                 let node_id: usize = values.next().unwrap().parse().unwrap();
-                let _node_id2: usize = values.next().unwrap().parse().unwrap();
+                //let _node_id2: usize = values.next().unwrap().parse().unwrap();
                 let latitude: f32 = values.next().unwrap().parse().unwrap();
                 let longitude: f32 = values.next().unwrap().parse().unwrap();
-                let _elevation: f32 = values.next().unwrap().parse().unwrap();
+                // let _elevation: f32 = values.next().unwrap().parse().unwrap();
 
                 Node {
                     id: node_id,
@@ -60,8 +60,8 @@ impl Graph {
                 let source_id: usize = values.next().unwrap().parse().unwrap();
                 let target_id: usize = values.next().unwrap().parse().unwrap();
                 let cost: u32 = values.next().unwrap().parse().unwrap();
-                let _type: u32 = values.next().unwrap().parse().unwrap();
-                let _maxspeed: usize = values.next().unwrap().parse().unwrap();
+                // let _type: u32 = values.next().unwrap().parse().unwrap();
+                // let _maxspeed: usize = values.next().unwrap().parse().unwrap();
 
                 Edge {
                     source_id,
@@ -71,7 +71,7 @@ impl Graph {
             })
             .collect();
 
-        let mut edges_start_for_node: Vec<usize> = vec![0; number_of_nodes + 1];
+        let mut edges_start_for_node: Vec<u32> = vec![0; number_of_nodes + 1];
 
         // temporarrly adding a node in order to generate the list
         edges.push(Edge {
@@ -85,7 +85,7 @@ impl Graph {
         for (i, edge) in edges.iter().enumerate() {
             if edge.source_id != current {
                 for index in (current + 1)..=edge.source_id {
-                    edges_start_for_node[index] = i;
+                    edges_start_for_node[index] = i as u32;
                 }
                 current = edge.source_id;
             }
