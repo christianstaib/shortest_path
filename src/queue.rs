@@ -3,7 +3,7 @@ use std::cmp::Ordering;
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub struct State {
     pub node_cost: u32,
-    pub node_id: usize,
+    pub node_id: u32,
 }
 
 impl Ord for State {

@@ -3,8 +3,8 @@ use std::io::{BufRead, BufReader};
 
 #[derive(Clone)]
 pub struct TestRoute {
-    pub from: usize,
-    pub to: usize,
+    pub from: u32,
+    pub to: u32,
     pub cost: i32,
 }
 
@@ -12,13 +12,13 @@ pub fn get_test_cases() -> Vec<TestRoute> {
     let file = File::open("benchs/germany2.que").expect("Failed to open file");
     let reader = BufReader::new(file);
 
-    let mut from_to: Vec<(usize, usize)> = Vec::new();
+    let mut from_to: Vec<(u32, u32)> = Vec::new();
 
     for line in reader.lines() {
         if let Ok(line) = line {
             let mut iter = line.split_whitespace();
             if let (Some(from), Some(to)) = (iter.next(), iter.next()) {
-                if let (Ok(fom), Ok(to)) = (from.parse::<usize>(), to.parse::<usize>()) {
+                if let (Ok(fom), Ok(to)) = (from.parse::<u32>(), to.parse::<u32>()) {
                     from_to.push((fom, to));
                 }
             }
