@@ -5,6 +5,7 @@ use std::io::Write;
 use std::time::Duration;
 use std::time::Instant;
 
+mod bucket_queue;
 mod dijkstra;
 mod graph;
 mod queue;
@@ -18,15 +19,20 @@ use crate::tests::*;
 
 fn main() {
     let start = Instant::now();
-    let graph = Graph::from_file("data/network_4m.fmi");
+    let graph = Graph::from_file("data/network_4M.fmi");
     let end = start.elapsed();
     println!("loading graph file took {:.?}", end);
     println!("graph has {} nodes", graph.nodes.len());
     println!("graph has {} edges", graph.edges.len());
 
+    println!(
+        "max cost is {}",
+        graph.edges.iter().map(|edge| edge.cost).max().unwrap()
+    );
+
     let mut times: Vec<Duration> = Vec::new();
     let mut rng = rand::thread_rng();
-    let test_cases: Vec<TestRoute> = (0..1)
+    let test_cases: Vec<TestRoute> = (0..100)
         .map(|_| TestRoute {
             from: rng.gen_range(0..graph.nodes.len()) as u32,
             to: rng.gen_range(0..graph.nodes.len()) as u32,
@@ -39,7 +45,7 @@ fn main() {
         let start_main = Instant::now();
         let (used_edges, cost) = dijkstra(&graph, test.from, test.to);
         let end_main = start_main.elapsed();
-        println!("cost is {}km", cost);
+        // println!("cost is {}km", cost);
         // if cost != u32::MAX {
         //     println!(
         //         "cost is {:>6}km ({}, {} -> {}, {})",
@@ -82,7 +88,7 @@ fn main() {
     }
     let all: Duration = times.iter().sum();
     println!("avg {:.?}", all / test_cases.len() as u32);
-    writer.flush();
+    writer.flush().unwrap();
 }
 
 pub fn meters_to_radians(meters: f64) -> f64 {
