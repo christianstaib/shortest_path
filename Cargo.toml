@@ -8,3 +8,7 @@ edition = "2021"
 [dependencies]
 rand = "0.8"
 indicatif = {version = "*", features = ["rayon"]}
+tokio = { version = "1", features = ["full"] }
+warp = "0.3"
+serde_derive = "1.0.192"
+serde = "1.0.192"

@@ -2,6 +2,7 @@ use std::f64::consts::PI;
 use std::fs::File;
 use std::io::BufWriter;
 use std::io::Write;
+use std::sync::Arc;
 use std::time::Duration;
 use std::time::Instant;
 
@@ -12,12 +13,42 @@ mod queue;
 mod tests;
 use indicatif::ProgressIterator;
 use rand::Rng;
+use warp::{http::Response, Filter};
 
 use crate::dijkstra::*;
 use crate::graph::*;
 use crate::tests::*;
 
-fn main() {
+use serde_derive::{Deserialize, Serialize};
+
+#[derive(Deserialize, Serialize)]
+struct RouteRequest {
+    from: u32,
+    to: u32,
+}
+
+#[tokio::main]
+async fn main() {
+    let graph = Arc::new(Graph::from_file("data/network_4M.fmi"));
+
+    let promote = warp::post()
+        .and(warp::path("route"))
+        .and(warp::body::json())
+        .map(move |route_request: RouteRequest| {
+            let (used_edges, cost) = dijkstra(&graph.clone(), route_request.from, route_request.to);
+            let route = get_route(&graph, route_request.from, route_request.to, used_edges);
+            let mut ids = Vec::new();
+            if let Some(route) = route {
+                ids.extend(route.edges.iter().map(|edge| edge.source_id.to_string()));
+            }
+
+            Response::builder().body(format!("{:?}", ids))
+        });
+
+    warp::serve(promote).run(([127, 0, 0, 1], 3030)).await
+}
+
+fn _main2() {
     let start = Instant::now();
     let graph = Graph::from_file("data/network_4M.fmi");
     let end = start.elapsed();
@@ -43,7 +74,7 @@ fn main() {
     let mut writer = BufWriter::new(File::create("route.csv").unwrap());
     for test in test_cases.iter().progress() {
         let start_main = Instant::now();
-        let (used_edges, cost) = dijkstra(&graph, test.from, test.to);
+        let (used_edges, _) = dijkstra(&graph, test.from, test.to);
         let end_main = start_main.elapsed();
         // println!("cost is {}km", cost);
         // if cost != u32::MAX {
