@@ -12,6 +12,7 @@ use super::{
         cost_of_queries_priority::CostOfQueriesPriority,
         deleted_neighbors_priority::DeletedNeighborsPriority,
         edge_difference_priority::EdgeDifferencePriority, priority_terms::PriorityTerm,
+        voronoi_region::VoronoiRegion,
     },
     state::CHState,
 };
@@ -34,6 +35,7 @@ impl CHQueue {
         queue.register(1, DeletedNeighborsPriority::new(graph.clone()));
         queue.register(1, CostOfQueriesPriority::new(graph.clone()));
         queue.register(1, EdgeDifferencePriority::new(graph.clone()));
+        queue.register(1, VoronoiRegion::new(graph.clone()));
         queue.initialize();
         queue
     }

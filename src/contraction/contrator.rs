@@ -1,7 +1,11 @@
 use crate::graph::bidirectional_graph::BidirectionalGraph;
 use crate::graph::simple_graph::Edge;
 
-use std::{rc::Rc, sync::RwLock};
+use std::{
+    rc::Rc,
+    sync::RwLock,
+    time::{Duration, Instant},
+};
 
 use crate::graph_cleaner::{remove_edge_to_self, removing_double_edges};
 use indicatif::ProgressBar;
@@ -16,7 +20,7 @@ pub struct Contractor {
 
 impl Contractor {
     pub fn new(graph: BidirectionalGraph) -> Self {
-        let levels = vec![0; graph.outgoing_edges.len()];
+        let levels = vec![u32::MAX; graph.outgoing_edges.len()];
         let graph = Rc::new(RwLock::new(graph));
         let queue = CHQueue::new(graph.clone());
 
@@ -37,7 +41,7 @@ impl Contractor {
         None
     }
 
-    pub fn contract(&mut self) -> Vec<Edge> {
+    pub fn contract(&mut self, max_time: Duration) -> Vec<Edge> {
         removing_double_edges(self.graph.clone());
         remove_edge_to_self(self.graph.clone());
         println!("start contracting node");
@@ -48,12 +52,16 @@ impl Contractor {
 
         let bar = ProgressBar::new(self.graph.read().unwrap().outgoing_edges.len() as u64);
         let mut level = 0;
+        let start = Instant::now();
         while let Some(v) = self.queue.lazy_pop() {
             shortcuts.append(&mut self.contract_node(v));
             self.levels[v as usize] = level;
 
             level += 1;
             bar.inc(1);
+            if start.elapsed() > max_time {
+                break;
+            }
         }
         bar.finish();
 
@@ -97,13 +105,13 @@ impl Contractor {
         let mut graph = self.graph.write().unwrap();
         graph.outgoing_edges.iter_mut().for_each(|edges| {
             edges.retain(|edge| {
-                self.levels[edge.source as usize] < self.levels[edge.target as usize]
+                self.levels[edge.source as usize] <= self.levels[edge.target as usize]
             });
         });
 
         graph.incoming_edges.iter_mut().for_each(|edges| {
             edges.retain(|edge| {
-                self.levels[edge.source as usize] > self.levels[edge.target as usize]
+                self.levels[edge.source as usize] >= self.levels[edge.target as usize]
             });
         });
     }
