@@ -1,5 +1,7 @@
 use std::{
     env,
+    fs::File,
+    io::{BufWriter, Write},
     time::{Duration, Instant},
 };
 
@@ -24,14 +26,19 @@ fn main() {
     println!("there are {} shortcuts", shortcuts.len());
     let graph = contractor.get_graph().unwrap();
 
-    let dijskstra = ChDijsktra::new(graph);
+    let file_name = args[1].clone() + ".graph.json";
+    let mut writer = BufWriter::new(File::create(file_name.as_str()).unwrap());
+    serde_json::to_writer(&mut writer, &graph).unwrap();
+    writer.flush().unwrap();
 
     println!(
         "contracting graph took {:?}, there are {} shortcuts",
         before.elapsed(),
         shortcuts.len()
     );
+
     let mut times = Vec::new();
+    let dijskstra = ChDijsktra::new(graph);
 
     println!("starting route timing");
     let mut rng = rand::thread_rng();

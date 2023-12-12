@@ -1,6 +1,8 @@
+use serde::{Deserialize, Serialize};
+
 use super::simple_graph::{Edge, Graph};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct BidirectionalGraph {
     pub outgoing_edges: Vec<Vec<Edge>>,
     pub incoming_edges: Vec<Vec<Edge>>,
