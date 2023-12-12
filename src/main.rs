@@ -22,7 +22,7 @@ fn main() {
     let before = Instant::now();
     let mut contractor = Contractor::new(graph);
 
-    let shortcuts = contractor.contract(Duration::from_secs_f32(9.0 * 60.0 * 60.0));
+    let shortcuts = contractor.contract(Duration::from_secs_f32(24.0 * 60.0 * 60.0));
     println!("there are {} shortcuts", shortcuts.len());
     let graph = contractor.get_graph().unwrap();
 
