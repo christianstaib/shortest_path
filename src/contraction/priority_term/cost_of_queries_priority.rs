@@ -1,11 +1,15 @@
 use crate::graph::bidirectional_graph::BidirectionalGraph;
 use crate::graph::simple_graph::Edge;
-use std::{cmp::max, rc::Rc, sync::RwLock};
+use std::{
+    cmp::max,
+    rc::Rc,
+    sync::{Arc, RwLock},
+};
 
 use super::priority_terms::PriorityTerm;
 
 pub struct CostOfQueriesPriority {
-    graph: Rc<RwLock<BidirectionalGraph>>,
+    graph: Arc<RwLock<BidirectionalGraph>>,
     cost_of_queries: Vec<u32>,
 }
 
@@ -33,7 +37,7 @@ impl PriorityTerm for CostOfQueriesPriority {
 }
 
 impl CostOfQueriesPriority {
-    pub fn new(graph: Rc<RwLock<BidirectionalGraph>>) -> Self {
+    pub fn new(graph: Arc<RwLock<BidirectionalGraph>>) -> Self {
         let cost_of_queries = vec![0; graph.read().unwrap().outgoing_edges.len()];
         Self {
             graph,

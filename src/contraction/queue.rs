@@ -2,7 +2,7 @@ use crate::graph::bidirectional_graph::BidirectionalGraph;
 
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 
 use indicatif::ProgressIterator;
 use std::{collections::BinaryHeap, rc::Rc};
@@ -18,13 +18,13 @@ use super::{
 };
 
 pub struct CHQueue {
-    graph: Rc<RwLock<BidirectionalGraph>>,
+    graph: Arc<RwLock<BidirectionalGraph>>,
     queue: BinaryHeap<CHState>,
     priority_terms: Vec<(i32, Box<dyn PriorityTerm>)>,
 }
 
 impl CHQueue {
-    pub fn new(graph: Rc<RwLock<BidirectionalGraph>>) -> Self {
+    pub fn new(graph: Arc<RwLock<BidirectionalGraph>>) -> Self {
         let queue = BinaryHeap::new();
         let priority_terms = Vec::new();
         let mut queue = Self {

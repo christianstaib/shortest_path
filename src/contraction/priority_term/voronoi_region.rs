@@ -1,15 +1,18 @@
-use std::{rc::Rc, sync::RwLock};
+use std::{
+    rc::Rc,
+    sync::{Arc, RwLock},
+};
 
 use crate::graph::bidirectional_graph::BidirectionalGraph;
 
 use super::priority_terms::PriorityTerm;
 
 pub struct VoronoiRegion {
-    graph: Rc<RwLock<BidirectionalGraph>>,
+    graph: Arc<RwLock<BidirectionalGraph>>,
 }
 
 impl VoronoiRegion {
-    pub fn new(graph: Rc<RwLock<BidirectionalGraph>>) -> Self {
+    pub fn new(graph: Arc<RwLock<BidirectionalGraph>>) -> Self {
         Self { graph }
     }
 }

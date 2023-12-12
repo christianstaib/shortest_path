@@ -1,10 +1,14 @@
-use std::{collections::HashMap, rc::Rc, sync::RwLock};
+use std::{
+    collections::HashMap,
+    rc::Rc,
+    sync::{Arc, RwLock},
+};
 
 use indicatif::ProgressIterator;
 
 use crate::graph::bidirectional_graph::BidirectionalGraph;
 
-pub fn remove_edge_to_self(graph: Rc<RwLock<BidirectionalGraph>>) {
+pub fn remove_edge_to_self(graph: Arc<RwLock<BidirectionalGraph>>) {
     println!("removing double nodes");
     let mut graph = graph.write().unwrap();
 
@@ -17,7 +21,7 @@ pub fn remove_edge_to_self(graph: Rc<RwLock<BidirectionalGraph>>) {
     }
 }
 
-pub fn removing_double_edges(graph: Rc<RwLock<BidirectionalGraph>>) {
+pub fn removing_double_edges(graph: Arc<RwLock<BidirectionalGraph>>) {
     println!("removing double nodes");
     let mut graph = graph.write().unwrap();
 

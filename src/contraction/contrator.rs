@@ -3,7 +3,7 @@ use crate::graph::simple_graph::Edge;
 
 use std::{
     rc::Rc,
-    sync::RwLock,
+    sync::{Arc, RwLock},
     time::{Duration, Instant},
 };
 
@@ -13,7 +13,7 @@ use indicatif::ProgressBar;
 use super::{queue::CHQueue, shortcut_generator::ShortcutGenerator};
 
 pub struct Contractor {
-    graph: Rc<RwLock<BidirectionalGraph>>,
+    graph: Arc<RwLock<BidirectionalGraph>>,
     queue: CHQueue,
     levels: Vec<u32>,
 }
@@ -21,7 +21,7 @@ pub struct Contractor {
 impl Contractor {
     pub fn new(graph: BidirectionalGraph) -> Self {
         let levels = vec![u32::MAX; graph.outgoing_edges.len()];
-        let graph = Rc::new(RwLock::new(graph));
+        let graph = Arc::new(RwLock::new(graph));
         let queue = CHQueue::new(graph.clone());
 
         Contractor {
@@ -33,7 +33,7 @@ impl Contractor {
 
     pub fn get_graph(self) -> Option<BidirectionalGraph> {
         drop(self.queue);
-        if let Some(graph) = Rc::into_inner(self.graph) {
+        if let Some(graph) = Arc::into_inner(self.graph) {
             if let Ok(graph) = graph.into_inner() {
                 return Some(graph);
             }
@@ -86,7 +86,7 @@ impl Contractor {
         // U --> v --> W
         let shortcut_generator = ShortcutGenerator::new(self.graph.clone());
         let shortcuts = shortcut_generator.naive_shortcuts(v);
-        //let shortcuts = shortcut_generator.remove_unnecessary_shortcuts(shortcuts, v);
+        // let shortcuts = shortcut_generator.remove_unnecessary_shortcuts(shortcuts, v);
         self.add_shortcuts(&shortcuts);
         self.disconnect(v);
         shortcuts

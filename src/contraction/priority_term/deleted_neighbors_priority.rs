@@ -1,10 +1,13 @@
 use crate::graph::bidirectional_graph::BidirectionalGraph;
-use std::{rc::Rc, sync::RwLock};
+use std::{
+    rc::Rc,
+    sync::{Arc, RwLock},
+};
 
 use super::priority_terms::PriorityTerm;
 
 pub struct DeletedNeighborsPriority {
-    graph: Rc<RwLock<BidirectionalGraph>>,
+    graph: Arc<RwLock<BidirectionalGraph>>,
     deleted: Vec<bool>,
 }
 
@@ -29,7 +32,7 @@ impl PriorityTerm for DeletedNeighborsPriority {
 }
 
 impl DeletedNeighborsPriority {
-    pub fn new(graph: Rc<RwLock<BidirectionalGraph>>) -> Self {
+    pub fn new(graph: Arc<RwLock<BidirectionalGraph>>) -> Self {
         let deleted = vec![false; graph.read().unwrap().outgoing_edges.len()];
         Self { graph, deleted }
     }

@@ -1,7 +1,7 @@
 use crate::heuristic::landmark::Landmark;
 use log;
 use std::rc::Rc;
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 
 use crate::dijkstra::dijkstra_helper::DijkstraHelper;
 use crate::graph::bidirectional_graph::BidirectionalGraph;
@@ -17,7 +17,7 @@ pub struct LandmarkHeuristic {
 impl LandmarkHeuristic {
     pub fn new(graph: &BidirectionalGraph, resolution: u32) -> Self {
         let graph = RwLock::new(graph.clone());
-        let graph = Rc::new(graph);
+        let graph = Arc::new(graph);
         let num_vecs = graph.read().unwrap().outgoing_edges.len();
         let dijkstra = DijkstraHelper::new(graph);
 

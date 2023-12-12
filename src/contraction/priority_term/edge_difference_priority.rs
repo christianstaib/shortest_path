@@ -1,13 +1,13 @@
 use crate::contraction::shortcut_generator::ShortcutGenerator;
 use crate::graph::bidirectional_graph::BidirectionalGraph;
-use std::sync::RwLock;
+use std::sync::{Arc, RwLock};
 
 use std::rc::Rc;
 
 use super::priority_terms::PriorityTerm;
 
 pub struct EdgeDifferencePriority {
-    graph: Rc<RwLock<BidirectionalGraph>>,
+    graph: Arc<RwLock<BidirectionalGraph>>,
 }
 
 impl PriorityTerm for EdgeDifferencePriority {
@@ -23,7 +23,7 @@ impl PriorityTerm for EdgeDifferencePriority {
 }
 
 impl EdgeDifferencePriority {
-    pub fn new(graph: Rc<RwLock<BidirectionalGraph>>) -> Self {
+    pub fn new(graph: Arc<RwLock<BidirectionalGraph>>) -> Self {
         Self { graph }
     }
 }

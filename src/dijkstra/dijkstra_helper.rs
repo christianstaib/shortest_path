@@ -1,16 +1,17 @@
 use crate::binary_heap::MinimumItem;
 use crate::graph::bidirectional_graph::BidirectionalGraph;
 use ahash::RandomState;
+use std::sync::Arc;
 use std::{collections::HashMap, sync::RwLock};
 
 use std::{collections::BinaryHeap, rc::Rc};
 
 pub struct DijkstraHelper {
-    graph: Rc<RwLock<BidirectionalGraph>>,
+    graph: Arc<RwLock<BidirectionalGraph>>,
 }
 
 impl DijkstraHelper {
-    pub fn new(graph: Rc<RwLock<BidirectionalGraph>>) -> Self {
+    pub fn new(graph: Arc<RwLock<BidirectionalGraph>>) -> Self {
         Self { graph }
     }
 

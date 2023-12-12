@@ -1,15 +1,20 @@
+use rayon::iter::{ParallelBridge, ParallelIterator};
+
 use crate::dijkstra::dijkstra_helper::DijkstraHelper;
 use crate::graph::bidirectional_graph::BidirectionalGraph;
 use crate::graph::simple_graph::Edge;
 
-use std::{rc::Rc, sync::RwLock};
+use std::{
+    rc::Rc,
+    sync::{Arc, Mutex, RwLock},
+};
 
 pub struct ShortcutGenerator {
-    graph: Rc<RwLock<BidirectionalGraph>>,
+    graph: Arc<RwLock<BidirectionalGraph>>,
 }
 
 impl ShortcutGenerator {
-    pub fn new(graph: Rc<RwLock<BidirectionalGraph>>) -> Self {
+    pub fn new(graph: Arc<RwLock<BidirectionalGraph>>) -> Self {
         Self { graph }
     }
 
@@ -61,18 +66,16 @@ impl ShortcutGenerator {
     pub fn naive_shortcuts(&self, v: u32) -> Vec<Edge> {
         let dijkstra_helper = DijkstraHelper::new(self.graph.clone());
 
-        let mut shortcuts = Vec::new();
+        let shortcuts = Arc::new(Mutex::new(Vec::new()));
         let uv_edges = &self.graph.read().unwrap().incoming_edges[v as usize].clone();
         let uw_edges = &self.graph.read().unwrap().outgoing_edges[v as usize].clone();
 
         let max_cost = uv_edges.iter().map(|edge| edge.cost).max().unwrap_or(0)
             + uw_edges.iter().map(|edge| edge.cost).max().unwrap_or(0);
-        for &Edge {
-            source: u,
-            target: _,
-            cost: uv_cost,
-        } in uv_edges
-        {
+
+        uv_edges.iter().par_bridge().for_each(|edge| {
+            let u = edge.source;
+            let uv_cost = edge.cost;
             let costs = dijkstra_helper.single_source_cost_without(u, v, max_cost);
             for &Edge {
                 source: _,
@@ -87,10 +90,20 @@ impl ShortcutGenerator {
                         target: w,
                         cost,
                     };
-                    shortcuts.push(shortcut.clone());
+                    shortcuts.lock().unwrap().push(shortcut.clone());
                 }
             }
-        }
-        shortcuts
+        });
+
+        let cloned_data = {
+            // Lock the mutex to access its contents
+            let lock = shortcuts.lock().unwrap();
+
+            // Clone the data inside the Vec
+            // This creates a new Vec with the same elements
+            lock.clone()
+        };
+
+        cloned_data
     }
 }
